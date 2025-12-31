@@ -100,6 +100,232 @@ class SoundManager {
 
 const sounds = new SoundManager();
 
+class BackgroundManager {
+    constructor() {
+        this.layer = document.getElementById('background-layer');
+        this.container = document.getElementById('game-container');
+        this.objects = [];
+        this.lastCameraY = 0;
+
+        // ランドマーク定義
+        this.landmarks = [
+            { score: 3, emoji: '🐈', size: 40, offset: -100, spawned: false }, // 膝の高さ？
+            { score: 10, emoji: '🦒', size: 100, offset: 50, spawned: false },
+            { score: 20, emoji: '🦕', size: 120, offset: -80, spawned: false }, // 恐竜？
+            { score: 50, emoji: '🦅', size: 60, offset: 120, spawned: false },
+            { score: 100, emoji: '🗻', size: 200, offset: 0, spawned: false },
+            { score: 333, emoji: '🗼', size: 150, offset: 80, spawned: false },
+            { score: 634, emoji: '☁️', size: 180, offset: -50, spawned: false }, // スカイツリー的な高さ
+            { score: 1000, emoji: '✈️', size: 80, offset: 100, spawned: false },
+            { score: 2000, emoji: '🛰️', size: 70, offset: -80, spawned: false },
+            { score: 3000, emoji: '🌑', size: 120, offset: 0, spawned: false },
+            { score: 5000, emoji: '🛸', size: 90, offset: 120, spawned: false },
+            { score: 10000, emoji: '🪐', size: 200, offset: -50, spawned: false },
+        ];
+    }
+
+    reset() {
+        this.layer.innerHTML = '';
+        this.objects = [];
+        this.landmarks.forEach(l => l.spawned = false);
+        this.updateColor(0);
+        this.lastCameraY = 0;
+    }
+
+    update(score, cameraY, width, height) {
+        this.updateColor(score);
+        this.spawnObjects(score, cameraY, width);
+        this.updatePositions(cameraY, height);
+        this.lastCameraY = cameraY;
+    }
+
+    updateColor(score) {
+        const colors = [
+            { score: 0, color: [239, 236, 223] },   // #EFECDF (昼)
+            { score: 20, color: [255, 183, 77] },   // Sunset
+            { score: 50, color: [40, 53, 147] },    // Night
+            { score: 100, color: [10, 10, 30] }      // Space
+        ];
+
+        let start = colors[0];
+        let end = colors[colors.length - 1];
+
+        for (let i = 0; i < colors.length - 1; i++) {
+            if (score >= colors[i].score && score < colors[i + 1].score) {
+                start = colors[i];
+                end = colors[i + 1];
+                break;
+            } else if (score >= colors[colors.length - 1].score) {
+                start = colors[colors.length - 1];
+                end = colors[colors.length - 1];
+                break;
+            }
+        }
+
+        let progress = 0;
+        if (start !== end) {
+            progress = (score - start.score) / (end.score - start.score);
+        }
+
+        const r = Math.round(start.color[0] + (end.color[0] - start.color[0]) * progress);
+        const g = Math.round(start.color[1] + (end.color[1] - start.color[1]) * progress);
+        const b = Math.round(start.color[2] + (end.color[2] - start.color[2]) * progress);
+
+        this.container.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+
+        if (score >= 40) {
+            document.getElementById('score-container').style.color = '#FFFFFF';
+            document.querySelector('.unit').style.color = '#CCCCCC';
+        } else {
+            document.getElementById('score-container').style.color = '#D72638';
+            document.querySelector('.unit').style.color = '#888';
+        }
+    }
+
+    spawnObjects(score, cameraY, width) {
+        // ランドマーク生成
+        this.landmarks.forEach(l => {
+            if (!l.spawned && score >= l.score) {
+                this.createLandmark(l, cameraY, width);
+                l.spawned = true;
+            }
+        });
+
+        // ランダム装飾生成 (上にスクロールしている時のみ)
+        if (cameraY < this.lastCameraY) {
+            // スクロール距離分だけ生成チャンス
+            const dist = this.lastCameraY - cameraY;
+            if (Math.random() < dist * 0.02) { // 生成確率
+                this.createDecoration(score, cameraY, width);
+            }
+        }
+    }
+
+    createLandmark(data, cameraY, width) {
+        const el = document.createElement('div');
+        el.className = 'bg-object bg-landmark';
+        el.textContent = data.emoji;
+        el.style.fontSize = `${data.size}px`;
+
+        // 画面上部外に配置
+        // Y座標は game world 座標系で管理するべきだが、
+        // ここでは画面上の相対位置で管理し、cameraYの変化に合わせて移動させる簡易実装にする？
+        // いや、world座標を持たせて cameraY で描画位置を決めるのがベスト
+
+        // ワールド座標Y: カメラの上端より少し上
+        const worldY = cameraY - 100;
+
+        const x = (width / 2) + data.offset;
+
+        const obj = {
+            el,
+            x,
+            y: worldY,
+            parallax: 0.2, // 遠景っぽく少し遅く動く
+            type: 'landmark'
+        };
+
+        this.layer.appendChild(el);
+        this.objects.push(obj);
+    }
+
+    createDecoration(score, cameraY, width) {
+        const type = this.getDecorationType(score);
+        if (!type) return;
+
+        const el = document.createElement('div');
+        el.className = `bg-object ${type.className}`;
+
+        // ランダム配置
+        const x = Math.random() * width;
+        const worldY = cameraY - 100; // 画面上
+
+        // スタイル適用
+        if (type.className === 'bg-cloud') {
+            const w = 60 + Math.random() * 100;
+            const h = w * 0.6;
+            el.style.width = `${w}px`;
+            el.style.height = `${h}px`;
+        } else if (type.className === 'bg-star') {
+            const size = 2 + Math.random() * 4;
+            el.style.width = `${size}px`;
+            el.style.height = `${size}px`;
+        }
+
+        const obj = {
+            el,
+            x,
+            y: worldY,
+            parallax: type.parallax + (Math.random() * 0.1),
+            type: 'decoration'
+        };
+
+        this.layer.appendChild(el);
+        this.objects.push(obj);
+    }
+
+    getDecorationType(score) {
+        if (score < 10) return null;
+        if (score < 50) return { className: 'bg-cloud', parallax: 0.5 };
+        if (score >= 80) return { className: 'bg-star', parallax: 0.1 };
+        return null; // 50-80の間は過渡期
+    }
+
+    updatePositions(cameraY, height) {
+        for (let i = this.objects.length - 1; i >= 0; i--) {
+            const obj = this.objects[i];
+
+            // 視差効果: parallaxが小さいほど背景（カメラと一緒に動く量が多い = 相対移動が少ない）
+            // 画面上のY = (obj.y - cameraY) * parallax ではなく、
+            // 単純に「カメラが上にいくと、物体は下にいく」
+
+            // world座標系で cameraY からの相対位置を計算
+            const relY = obj.y - cameraY;
+
+            // ここでパララックス:
+            // カメラが -100 動いた時、物体も -100 動けば画面上の位置は変わらない。
+            // Parallax 1.0 = 通常の物体 (画面内をスクロールする)
+            // Parallax 0.0 = カメラに追従 (画面固定)
+            // 遠景は Parallax < 1.0
+
+            // 基準位置からの変位
+            // しかしobj.yは生成時の絶対位置として定義してしまっている...
+            // 簡易的にやるなら:
+            // 画面上の位置 = (obj.y - cameraY * obj.parallax) ... これだと初期位置がずれる
+            // 
+            // 今回はシンプルに: obj.y はワールド座標。
+            // 画面Y = obj.y - cameraY
+            // これにパララックス係数をかけるアプローチは「無限スクロール」だと破綻しやすい。
+            // 
+            // 修正案:
+            // 背景レイヤー全体を動かすのではなく、個々の要素のstyle.topを更新する。
+            // 遠景（雲）などは、カメラ移動量の N% しか動かないように見える = world座標上での移動速度が遅い？
+            // 
+            // いや、一番簡単なのは、「カメラがY動いたら、背景オブジェクトは Y * factor だけ動いた位置に見える」
+            // screenY = (obj.y - cameraY) * parallax ... これだとカメラが0のときobj.yになる。
+            // 
+            // これを採用してみる。
+
+            // しかし、これだと上に行けば行くほど座標が圧縮されてしまうのでは？
+            // 通常のパララックス:
+            // screenY = obj.y - cameraY * parallax
+            // これは「カメラが下にいくと背景も下にいく（ついてくる）」= 遠くにある
+
+            const screenY = (obj.y - (cameraY * obj.parallax));
+
+            // 画面下端を越えたら削除
+            if (screenY > height + 100) {
+                obj.el.remove();
+                this.objects.splice(i, 1);
+                continue;
+            }
+
+            obj.el.style.transform = `translate3d(${obj.x}px, ${screenY}px, 0)`;
+        }
+    }
+}
+
+const bgManager = new BackgroundManager();
 const CONFIG = {
     MOCHI_WIDTH: 140,
     MOCHI_HEIGHT: 50,
@@ -252,7 +478,8 @@ function startGame() {
     document.getElementById('comparison-text').textContent = '目指せ、富士山！';
 
     spawnMochi();
-    updateBackground();
+    // updateBackground(); // 削除
+    bgManager.reset(); // 初期化
 
     // 初回インタラクションでAudioContext再開
     sounds.enable();
@@ -455,8 +682,8 @@ function onLanded(mochi) {
         document.getElementById('score').textContent = game.score;
         game.stackedMochis.push(mochi);
 
-        // 背景色を更新
-        updateBackground();
+        // 背景更新はupdate()で行うのでここは削除
+        // updateBackground();
 
         game.mochiState = 'none';
         game.currentMochi = null;
@@ -689,64 +916,12 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-function updateBackground() {
-    // スコアに応じて背景色を変更（昼 -> 夕方 -> 夜 -> 宇宙）
-    const container = document.getElementById('game-container');
-    const score = game.score;
-
-    let color = '#EFECDF'; // Default (Day)
-    const colors = [
-        { score: 0, color: [239, 236, 223] },   // #EFECDF
-        { score: 10, color: [255, 183, 77] },   // Sunset Orange
-        { score: 20, color: [40, 53, 147] },    // Night Blue
-        { score: 50, color: [10, 10, 30] }      // Deep Space
-    ];
-
-    // 現在のスコア区間によって色を補間なんかしないで、段階的に変えるアプローチ（フラットデザインっぽさ重視）
-    // あるいはスムーズな遷移が良いか。桜井さんなら「手触り」重視でスムーズな遷移を好むはず。
-
-    // 補間ロジック
-    let start = colors[0];
-    let end = colors[colors.length - 1];
-
-    for (let i = 0; i < colors.length - 1; i++) {
-        if (score >= colors[i].score && score < colors[i + 1].score) {
-            start = colors[i];
-            end = colors[i + 1];
-            break;
-        } else if (score >= colors[colors.length - 1].score) {
-            start = colors[colors.length - 1];
-            end = colors[colors.length - 1];
-            break;
-        }
-    }
-
-    // 進行度 (0.0 - 1.0)
-    let progress = 0;
-    if (start !== end) {
-        progress = (score - start.score) / (end.score - start.score);
-    }
-
-    // RGB補間
-    const r = Math.round(start.color[0] + (end.color[0] - start.color[0]) * progress);
-    const g = Math.round(start.color[1] + (end.color[1] - start.color[1]) * progress);
-    const b = Math.round(start.color[2] + (end.color[2] - start.color[2]) * progress);
-
-    container.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-
-    // 文字色の調整（背景が暗い時は白くする）
-    // Night Blueあたり(score 20)から白文字に固定
-    if (score >= 15) {
-        document.getElementById('score-container').style.color = '#FFFFFF';
-        document.querySelector('.unit').style.color = '#CCCCCC';
-    } else {
-        document.getElementById('score-container').style.color = '#D72638'; // Original Red
-        document.querySelector('.unit').style.color = '#888';
-    }
-}
+// function updateBackground() は BackgroundManager に統合されたため削除
 
 function update() {
     if (game.state !== 'playing') return;
+
+    bgManager.update(game.score, game.cameraY, game.width, game.height);
 
     // 崩れ検知
     if (checkCollapse()) {
