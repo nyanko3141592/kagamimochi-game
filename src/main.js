@@ -2,6 +2,104 @@ import Matter from 'matter-js';
 
 const { Engine, Render, Runner, Bodies, Composite, Events, Body } = Matter;
 
+// 音声合成クラス
+class SoundManager {
+    constructor() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.connect(this.ctx.destination);
+        this.masterGain.gain.value = 0.3; // 全体の音量
+        this.enabled = false;
+    }
+
+    enable() {
+        if (!this.enabled) {
+            this.ctx.resume().then(() => {
+                this.enabled = true;
+            });
+        }
+    }
+
+    playTone(freq, type, duration, startTime = 0) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + startTime);
+
+        gain.gain.setValueAtTime(0.5, this.ctx.currentTime + startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + startTime + duration);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(this.ctx.currentTime + startTime);
+        osc.stop(this.ctx.currentTime + startTime + duration);
+    }
+
+    playSpawn() {
+        // ポンッ
+        this.playTone(300, 'sine', 0.1);
+        this.playTone(450, 'sine', 0.1, 0.05);
+    }
+
+    playDrop() {
+        // ヒュッ
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.2);
+    }
+
+    playLand(size = 'normal') {
+        // ドスン
+        this.playTone(100, 'square', 0.2);
+        this.playTone(50, 'sine', 0.3);
+    }
+
+    playPerfect() {
+        // キラリーン
+        this.playTone(880, 'sine', 0.4, 0);
+        this.playTone(1108, 'sine', 0.4, 0.05);
+        this.playTone(1320, 'sine', 0.4, 0.1);
+    }
+
+    playGood() {
+        // コトン
+        this.playTone(300, 'triangle', 0.1);
+    }
+
+    playGameOver() {
+        // ジャーン...
+        this.playTone(400, 'sawtooth', 1.5, 0);
+        this.playTone(300, 'sawtooth', 1.5, 0.2);
+        this.playTone(200, 'sawtooth', 1.5, 0.4);
+
+        // エフェクト的なピッチダウン
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 1.5);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 1.5);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 1.5);
+    }
+}
+
+const sounds = new SoundManager();
+
 const CONFIG = {
     MOCHI_WIDTH: 140,
     MOCHI_HEIGHT: 50,
@@ -72,6 +170,11 @@ function init() {
         cameraY: 0,
         baseTopY,
         baseBottomY: height - 40,
+        shake: 0,
+        particles: [],
+        combo: 0,
+        maxCombo: 0,
+        perfectCount: 0
     };
 
     createBase();
@@ -139,6 +242,9 @@ function startGame() {
     game.score = 0;
     game.state = 'playing';
     game.stackedMochis = [];
+    game.combo = 0;
+    game.maxCombo = 0;
+    game.perfectCount = 0;
     game.moveX = game.width / 2;
     game.cameraY = 0;
 
@@ -146,6 +252,10 @@ function startGame() {
     document.getElementById('comparison-text').textContent = '目指せ、富士山！';
 
     spawnMochi();
+    updateBackground();
+
+    // 初回インタラクションでAudioContext再開
+    sounds.enable();
 }
 
 function restartGame() {
@@ -159,6 +269,11 @@ function restartGame() {
     Composite.allConstraints(game.engine.world).forEach(c => {
         Composite.remove(game.engine.world, c);
     });
+    game.particles.forEach(p => Composite.remove(game.engine.world, p.body));
+    game.particles = [];
+
+    // エフェクトテキスト削除
+    document.querySelectorAll('.effect-text').forEach(el => el.remove());
 
     game.currentMochi = null;
     game.mochiState = 'none';
@@ -192,7 +307,7 @@ function spawnMochi() {
         isStatic: false,
         friction: 0.9,
         frictionStatic: 1.0,
-        restitution: 0.05,
+        restitution: 0.01,
         density: 0.003,
         label: 'mochi',
         render: {
@@ -207,10 +322,16 @@ function spawnMochi() {
     game.currentMochi = mochi;
     game.mochiState = 'moving';
     game.moveX = width / 2;
-    game.moveDir = 1;
+    // 難易度調整: スコアに応じてスピードアップ (初期値4, 最大12)
+    const speed = Math.min(CONFIG.MOVE_SPEED + (game.score * 0.2), 12);
+    game.moveDir = Math.random() < 0.5 ? 1 : -1;
+    game.currentSpeed = speed;
 
     // カメラを更新して餅が見えるようにする
     updateCamera();
+
+    // スポーン音
+    sounds.playSpawn();
 }
 
 function dropMochi() {
@@ -221,6 +342,8 @@ function dropMochi() {
 
     // 初速を与える
     Body.setVelocity(mochi, { x: 0, y: 5 });
+
+    sounds.playDrop();
 }
 
 function handleCollision(event) {
@@ -250,6 +373,9 @@ function onLanded(mochi) {
     if (game.mochiState !== 'dropping') return;
     game.mochiState = 'settling';
 
+    let settledStartTime = null;
+    const SETTLED_DURATION = 100; // 0.1秒間静止を維持
+
     // 速度と回転が十分に小さくなるまで待ってから固定化
     const checkSettled = () => {
         if (game.state !== 'playing') return;
@@ -258,13 +384,28 @@ function onLanded(mochi) {
         const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
         const angularSpeed = Math.abs(mochi.angularVelocity);
 
-        // まだ動いている or 回転している場合は再チェック
-        if (speed > 0.3 || angularSpeed > 0.02) {
+        const isSettled = speed <= 0.3 && angularSpeed <= 0.02;
+
+        // まだ動いている or 回転している場合
+        if (!isSettled) {
             // 台より下に落ちていたらゲームオーバー
             if (mochi.position.y > game.baseBottomY + 20) {
                 gameOver();
                 return;
             }
+            // 動き出したらタイマーリセット
+            settledStartTime = null;
+            setTimeout(checkSettled, 50);
+            return;
+        }
+
+        // 静止状態になった
+        if (settledStartTime === null) {
+            settledStartTime = Date.now();
+        }
+
+        // 0.1秒間静止を維持したか確認
+        if (Date.now() - settledStartTime < SETTLED_DURATION) {
             setTimeout(checkSettled, 50);
             return;
         }
@@ -279,9 +420,44 @@ function onLanded(mochi) {
         // 成功 - 餅を固定する
         Body.setStatic(mochi, true);
 
-        game.score++;
+        // ジャスト判定 (ズレが10px以内)
+        if (distFromCenter < 10) {
+            // Perfect!
+            game.combo++;
+            game.maxCombo = Math.max(game.maxCombo, game.combo);
+            game.perfectCount++;
+
+            // コンボボーナス: 基本2点 + コンボ数
+            const points = 2 + Math.min(game.combo, 5);
+            game.score += points;
+
+            createEffectText(mochi.position.x, mochi.position.y - 40, `PERFECT!! x${game.combo}`);
+            createParticles(mochi.position.x, mochi.position.y + CONFIG.MOCHI_HEIGHT / 2, 10 + game.combo * 2);
+            game.shake = 10 + Math.min(game.combo, 10); // コンボでシェイクも強く
+
+            sounds.playPerfect();
+
+        } else if (distFromCenter < 30) {
+            // Great
+            game.combo = 0; // コンボリセット（厳しい？桜井さんならこれくらいするか）
+            createEffectText(mochi.position.x, mochi.position.y - 40, "GREAT!");
+            game.shake = 5;
+            game.score += 2;
+            sounds.playGood();
+        } else {
+            // Good (ギリギリ)
+            game.combo = 0;
+            game.shake = 2;
+            game.score++;
+            sounds.playLand();
+        }
+
         document.getElementById('score').textContent = game.score;
         game.stackedMochis.push(mochi);
+
+        // 背景色を更新
+        updateBackground();
+
         game.mochiState = 'none';
         game.currentMochi = null;
 
@@ -340,10 +516,62 @@ function applyCamera() {
 
     // cameraYが負の値のとき、その分だけ上を表示する
     // 例: cameraY = -100 のとき、y: -100 ~ height-100 を表示
+    // シェイク適用
+    const shakeX = (Math.random() - 0.5) * game.shake;
+    const shakeY = (Math.random() - 0.5) * game.shake;
+
     Render.lookAt(render, {
-        min: { x: 0, y: cameraY },
-        max: { x: width, y: height + cameraY }
+        min: { x: shakeX, y: cameraY + shakeY },
+        max: { x: width + shakeX, y: height + cameraY + shakeY }
     });
+}
+
+function createEffectText(x, y, text) {
+    const el = document.createElement('div');
+    el.className = 'effect-text';
+    el.textContent = text;
+    // Canvas座標を画面座標に変換（簡易的）
+    // 実際にはcameraYなどを考慮する必要があるが、UIオーバーレイ上での表示位置計算
+
+    // 現在の表示領域から相対位置を計算
+    const canvasRect = game.canvas.getBoundingClientRect();
+    // ここではシンプルに、CSSのアニメーションに任せるため、screen座標系でのoffsetは無視しつつ
+    // ゲーム内座標(x,y)をDOM座標にマッピングする。
+    // 注: 本格的なマッピングは複雑になるため、今回は簡易的にCanvas中央付近に出すか、
+    // あるいはcameraYを考慮して計算する。
+
+    // cameraYは負の値（上にスクロールしている）。
+    // 画面上のY = ワールドY - cameraY（基準）... ではなく
+    // Render.lookAtでビューポートが移動している。
+
+    // 画面内での相対Y
+    const screenY = y - game.cameraY;
+
+    el.style.left = canvasRect.left + x + 'px';
+    el.style.top = canvasRect.top + screenY + 'px';
+
+    document.body.appendChild(el);
+
+    setTimeout(() => el.remove(), 1000);
+}
+
+function createParticles(x, y, count) {
+    for (let i = 0; i < count; i++) {
+        const particle = Bodies.circle(x, y, Math.random() * 4 + 2, {
+            render: { fillStyle: '#C0A062' },
+            frictionAir: 0.05,
+            isSensor: true, // 衝突判定なし（見た目だけ）
+            label: 'particle'
+        });
+
+        Body.setVelocity(particle, {
+            x: (Math.random() - 0.5) * 10,
+            y: (Math.random() - 1) * 10
+        });
+
+        Composite.add(game.engine.world, particle);
+        game.particles.push({ body: particle, life: 60 });
+    }
 }
 
 function gameOver() {
@@ -357,11 +585,17 @@ function gameOver() {
     zoomOutToShowAll();
 
     setTimeout(() => {
+        // 効果音
+        sounds.playGameOver();
+
         document.getElementById('game-over-screen').classList.remove('hidden');
         document.getElementById('final-score').textContent = game.score;
+        document.getElementById('max-combo').textContent = game.maxCombo;
+        document.getElementById('perfect-count').textContent = game.perfectCount;
+
         const comp = [...COMPARISONS].reverse().find(c => c.threshold <= game.score);
         document.getElementById('final-comparison').textContent = comp ? comp.text : 'もっと積めるはず！';
-    }, 2000);
+    }, 1500);
 }
 
 function zoomOutToShowAll() {
@@ -455,6 +689,62 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
+function updateBackground() {
+    // スコアに応じて背景色を変更（昼 -> 夕方 -> 夜 -> 宇宙）
+    const container = document.getElementById('game-container');
+    const score = game.score;
+
+    let color = '#EFECDF'; // Default (Day)
+    const colors = [
+        { score: 0, color: [239, 236, 223] },   // #EFECDF
+        { score: 10, color: [255, 183, 77] },   // Sunset Orange
+        { score: 20, color: [40, 53, 147] },    // Night Blue
+        { score: 50, color: [10, 10, 30] }      // Deep Space
+    ];
+
+    // 現在のスコア区間によって色を補間なんかしないで、段階的に変えるアプローチ（フラットデザインっぽさ重視）
+    // あるいはスムーズな遷移が良いか。桜井さんなら「手触り」重視でスムーズな遷移を好むはず。
+
+    // 補間ロジック
+    let start = colors[0];
+    let end = colors[colors.length - 1];
+
+    for (let i = 0; i < colors.length - 1; i++) {
+        if (score >= colors[i].score && score < colors[i + 1].score) {
+            start = colors[i];
+            end = colors[i + 1];
+            break;
+        } else if (score >= colors[colors.length - 1].score) {
+            start = colors[colors.length - 1];
+            end = colors[colors.length - 1];
+            break;
+        }
+    }
+
+    // 進行度 (0.0 - 1.0)
+    let progress = 0;
+    if (start !== end) {
+        progress = (score - start.score) / (end.score - start.score);
+    }
+
+    // RGB補間
+    const r = Math.round(start.color[0] + (end.color[0] - start.color[0]) * progress);
+    const g = Math.round(start.color[1] + (end.color[1] - start.color[1]) * progress);
+    const b = Math.round(start.color[2] + (end.color[2] - start.color[2]) * progress);
+
+    container.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+
+    // 文字色の調整（背景が暗い時は白くする）
+    // Night Blueあたり(score 20)から白文字に固定
+    if (score >= 15) {
+        document.getElementById('score-container').style.color = '#FFFFFF';
+        document.querySelector('.unit').style.color = '#CCCCCC';
+    } else {
+        document.getElementById('score-container').style.color = '#D72638'; // Original Red
+        document.querySelector('.unit').style.color = '#888';
+    }
+}
+
 function update() {
     if (game.state !== 'playing') return;
 
@@ -465,6 +755,24 @@ function update() {
     }
 
     const mochi = game.currentMochi;
+
+    // シェイク減衰
+    if (game.shake > 0) {
+        game.shake *= 0.9;
+        if (game.shake < 0.5) game.shake = 0;
+    }
+
+    // パーティクル更新
+    for (let i = game.particles.length - 1; i >= 0; i--) {
+        const p = game.particles[i];
+        p.life--;
+        p.body.render.opacity = p.life / 60;
+        if (p.life <= 0) {
+            Composite.remove(game.engine.world, p.body);
+            game.particles.splice(i, 1);
+        }
+    }
+
     if (!mochi) return;
 
     // 移動中の餅の位置を手動更新
@@ -473,7 +781,7 @@ function update() {
         Body.setVelocity(mochi, { x: 0, y: 0 });
 
         // 左右移動
-        game.moveX += CONFIG.MOVE_SPEED * game.moveDir;
+        game.moveX += game.currentSpeed * game.moveDir;
 
         const margin = CONFIG.MOCHI_WIDTH / 2 + 20;
         if (game.moveX > game.width - margin) {
