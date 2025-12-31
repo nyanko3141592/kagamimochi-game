@@ -10,6 +10,49 @@
     overflow: hidden;
 }
 
+/* Stylized Mount Fuji (Distant View) */
+#background-layer::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 800px;
+    height: 35vh;
+    /* Height relative to viewport */
+    background: linear-gradient(180deg,
+            rgba(255, 255, 255, 0.9) 0%,
+            rgba(200, 225, 255, 0.6) 25%,
+            /* Snow line */
+            rgba(100, 150, 220, 0.4) 100%
+            /* Base */
+        );
+    /* Fuji Shape using polygon */
+    clip-path: polygon(50% 10%, 85% 100%, 15% 100%);
+    z-index: -1;
+    /* Behind background objects */
+}
+
+/* Japanese Pattern: Ichimatsu (Checkered) Overlay */
+#background-layer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Ichimatsu Pattern in Gold */
+    background-image:
+        linear-gradient(45deg, rgba(192, 160, 98, 0.08) 25%, transparent 25%, transparent 75%, rgba(192, 160, 98, 0.08) 75%, rgba(192, 160, 98, 0.08)),
+        linear-gradient(45deg, rgba(192, 160, 98, 0.08) 25%, transparent 25%, transparent 75%, rgba(192, 160, 98, 0.08) 75%, rgba(192, 160, 98, 0.08));
+    background-position: 0 0, 30px 30px;
+    background-size: 60px 60px;
+    z-index: 1;
+    /* Overlay on top of clouds */
+    opacity: 0.8;
+}
+
 /* Canvas should be above background */
 #game-canvas {
     position: relative;
@@ -28,18 +71,35 @@
     align-items: center;
     font-size: 2rem;
     pointer-events: none;
+    z-index: 0;
+    /* Align with stacking context */
 }
 
 .bg-cloud {
-    background: rgba(255, 255, 255, 0.4);
-    border-radius: 50%;
-    filter: blur(8px);
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50px;
+    filter: blur(5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
+/* Make stars nicer */
 .bg-star {
-    background: white;
+    background: #FFF;
     border-radius: 50%;
-    box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.9), 0 0 12px rgba(255, 215, 0, 0.4);
+    animation: twinkle 3s infinite alternate;
+}
+
+@keyframes twinkle {
+    0% {
+        opacity: 0.5;
+        transform: scale(0.8);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
 }
 
 .bg-landmark {

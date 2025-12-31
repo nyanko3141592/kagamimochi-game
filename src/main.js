@@ -647,16 +647,15 @@ function onLanded(mochi) {
         // 成功 - 餅を固定する
         Body.setStatic(mochi, true);
 
+        // 段数は常に1ずつ増加
+        game.score++;
+
         // ジャスト判定 (ズレが10px以内)
         if (distFromCenter < 10) {
             // Perfect!
             game.combo++;
             game.maxCombo = Math.max(game.maxCombo, game.combo);
             game.perfectCount++;
-
-            // コンボボーナス: 基本2点 + コンボ数
-            const points = 2 + Math.min(game.combo, 5);
-            game.score += points;
 
             createEffectText(mochi.position.x, mochi.position.y - 40, `PERFECT!! x${game.combo}`);
             createParticles(mochi.position.x, mochi.position.y + CONFIG.MOCHI_HEIGHT / 2, 10 + game.combo * 2);
@@ -666,16 +665,14 @@ function onLanded(mochi) {
 
         } else if (distFromCenter < 30) {
             // Great
-            game.combo = 0; // コンボリセット（厳しい？桜井さんならこれくらいするか）
+            game.combo = 0;
             createEffectText(mochi.position.x, mochi.position.y - 40, "GREAT!");
             game.shake = 5;
-            game.score += 2;
             sounds.playGood();
         } else {
             // Good (ギリギリ)
             game.combo = 0;
             game.shake = 2;
-            game.score++;
             sounds.playLand();
         }
 
