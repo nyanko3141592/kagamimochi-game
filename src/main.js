@@ -6,6 +6,8 @@ const CONFIG = {
     MOCHI_WIDTH: 140,
     MOCHI_HEIGHT: 50,
     MOVE_SPEED: 4,
+    // 落下距離 = 餅5個分
+    DROP_MOCHI_COUNT: 5,
 };
 
 const COMPARISONS = [
@@ -50,6 +52,9 @@ function init() {
     const runner = Runner.create();
     Runner.run(runner, engine);
 
+    // 台座の位置（画面下部に固定）
+    const baseTopY = height - 130;
+
     game = {
         engine,
         render,
@@ -65,7 +70,8 @@ function init() {
         moveDir: 1,
         moveX: width / 2,
         cameraY: 0,
-        baseBottomY: height - 40, // 台の一番下のY座標
+        baseTopY,
+        baseBottomY: height - 40,
     };
 
     createBase();
@@ -74,26 +80,24 @@ function init() {
 }
 
 function createBase() {
-    const { engine, width, height } = game;
+    const { engine, width, baseTopY } = game;
     const cx = width / 2;
-    const baseY = height - 80;
 
-    const platform = Bodies.rectangle(cx, baseY - 50, 180, 20, {
+    // 台座上部（餅を置く横長の台）
+    const platform = Bodies.rectangle(cx, baseTopY, 180, 20, {
         isStatic: true,
         label: 'base',
         render: { fillStyle: '#a1887f', strokeStyle: '#5d4037', lineWidth: 2 }
     });
 
-    const stand = Bodies.rectangle(cx, baseY, 100, 80, {
+    // 台座下部（正方形の土台）
+    const stand = Bodies.rectangle(cx, baseTopY + 50, 100, 80, {
         isStatic: true,
         label: 'base',
         render: { fillStyle: '#a1887f', strokeStyle: '#5d4037', lineWidth: 2 }
     });
 
     Composite.add(engine.world, [platform, stand]);
-
-    // 台の一番下を記録
-    game.baseBottomY = baseY + 40;
 }
 
 function setupEvents() {
@@ -141,12 +145,6 @@ function startGame() {
     document.getElementById('score').textContent = '0';
     document.getElementById('comparison-text').textContent = '目指せ、富士山！';
 
-    // カメラをリセット
-    Render.lookAt(game.render, {
-        min: { x: 0, y: 0 },
-        max: { x: game.width, y: game.height }
-    });
-
     spawnMochi();
 }
 
@@ -167,12 +165,26 @@ function restartGame() {
     startGame();
 }
 
+function getTopMochiY() {
+    // 一番上の餅のY座標を取得（なければ台座上面）
+    if (game.stackedMochis.length > 0) {
+        const topMochi = game.stackedMochis.reduce((t, m) =>
+            m.position.y < t.position.y ? m : t
+        );
+        return topMochi.position.y;
+    }
+    return game.baseTopY;
+}
+
 function spawnMochi() {
     if (game.state !== 'playing') return;
 
-    const { engine, width, cameraY } = game;
-    // カメラ位置に合わせてスポーン位置を調整
-    const spawnY = -cameraY + 120;
+    const { engine, width } = game;
+
+    // 一番上の餅から餅5個分上にスポーン
+    const topY = getTopMochiY();
+    const dropDistance = CONFIG.MOCHI_HEIGHT * CONFIG.DROP_MOCHI_COUNT;
+    const spawnY = topY - dropDistance;
 
     // 角丸の餅を作成（高さの50%の角丸）
     const mochi = Bodies.rectangle(width / 2, spawnY, CONFIG.MOCHI_WIDTH, CONFIG.MOCHI_HEIGHT, {
@@ -196,6 +208,9 @@ function spawnMochi() {
     game.mochiState = 'moving';
     game.moveX = width / 2;
     game.moveDir = 1;
+
+    // カメラを更新して餅が見えるようにする
+    updateCamera();
 }
 
 function dropMochi() {
@@ -235,13 +250,28 @@ function onLanded(mochi) {
     if (game.mochiState !== 'dropping') return;
     game.mochiState = 'settling';
 
-    // 安定するまで待つ
-    setTimeout(() => {
+    // 速度と回転が十分に小さくなるまで待ってから固定化
+    const checkSettled = () => {
         if (game.state !== 'playing') return;
+
+        const velocity = mochi.velocity;
+        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+        const angularSpeed = Math.abs(mochi.angularVelocity);
+
+        // まだ動いている or 回転している場合は再チェック
+        if (speed > 0.3 || angularSpeed > 0.02) {
+            // 台より下に落ちていたらゲームオーバー
+            if (mochi.position.y > game.baseBottomY + 20) {
+                gameOver();
+                return;
+            }
+            setTimeout(checkSettled, 50);
+            return;
+        }
 
         const distFromCenter = Math.abs(mochi.position.x - game.width / 2);
 
-        if (distFromCenter > 160) {
+        if (distFromCenter > 160 || mochi.position.y > game.baseBottomY + 20) {
             gameOver();
             return;
         }
@@ -260,10 +290,12 @@ function onLanded(mochi) {
             document.getElementById('comparison-text').textContent = comp.text;
         }
 
-        // カメラを更新してから次の餅を生成
-        updateCamera();
+        // 次の餅を生成
         spawnMochi();
-    }, 400);
+    };
+
+    // 少し待ってから安定チェック開始
+    setTimeout(checkSettled, 100);
 }
 
 function checkCollapse() {
@@ -285,26 +317,28 @@ function checkCollapse() {
 }
 
 function updateCamera() {
-    if (game.stackedMochis.length < 4) return;
+    // 一番上の餅の位置を取得
+    const topY = getTopMochiY();
 
-    // 一番上の餅を取得
-    const topMochi = game.stackedMochis.reduce((t, m) =>
-        m.position.y < t.position.y ? m : t
-    );
+    // 落下距離 + マージン（餅5個分）を上に確保
+    const dropDistance = CONFIG.MOCHI_HEIGHT * CONFIG.DROP_MOCHI_COUNT;
+    const margin = CONFIG.MOCHI_HEIGHT * 5;
+    const neededTopY = topY - dropDistance - margin;
 
-    // カメラが追従すべきY位置（餅が画面中央より上に来たらスクロール）
-    const targetCameraY = Math.max(0, (game.height / 2) - topMochi.position.y - 100);
-
-    // スムーズに追従
-    game.cameraY = targetCameraY;
+    // カメラ位置を計算（neededTopYが画面上部に来るように）
+    // cameraYは負の値で上にスクロール
+    if (neededTopY < game.cameraY) {
+        game.cameraY = neededTopY;
+    }
 }
 
 function applyCamera() {
-    if (game.cameraY <= 0) return;
+    const { render, width, height, cameraY } = game;
 
-    Render.lookAt(game.render, {
-        min: { x: 0, y: -game.cameraY },
-        max: { x: game.width, y: game.height - game.cameraY }
+    // Render.lookAtを使用してカメラ位置を適用
+    Render.lookAt(render, {
+        min: { x: 0, y: -cameraY },
+        max: { x: width, y: height - cameraY }
     });
 }
 
@@ -397,12 +431,15 @@ function update() {
             game.moveDir = 1;
         }
 
-        // 位置を直接設定（カメラ位置を考慮）
-        const spawnY = -game.cameraY + 120;
-        Body.setPosition(mochi, { x: game.moveX, y: spawnY });
+        // 位置を直接設定（一番上の餅から餅5個分上）
+        const topY = getTopMochiY();
+        const dropDistance = CONFIG.MOCHI_HEIGHT * CONFIG.DROP_MOCHI_COUNT;
+        const moveY = topY - dropDistance;
+        Body.setPosition(mochi, { x: game.moveX, y: moveY });
     }
 
-    // カメラ適用
+    // カメラ更新と適用
+    updateCamera();
     applyCamera();
 }
 
