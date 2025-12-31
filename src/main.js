@@ -332,20 +332,18 @@ const CONFIG = {
     MOVE_SPEED: 4,
     // 落下距離 = 餅5個分
     DROP_MOCHI_COUNT: 5,
+    // ゲームプレイ領域の固定幅（公平性のため）
+    // PCでも移動範囲はこの幅に制限される
+    PLAY_AREA_WIDTH: 400,
 };
 
-const COMPARISONS = [
-    { threshold: 0, text: "正月の始まり。" },
-    { threshold: 1, text: "まずは1段目！縁起がいいね。" },
-    { threshold: 3, text: "膝の高さを超えた！" },
-    { threshold: 10, text: "人間と同じ高さ！デカい。" },
-    { threshold: 20, text: "キリンと同じくらいの高さ！" },
-    { threshold: 50, text: "5階建てビルを超えた！" },
-    { threshold: 100, text: "奈良の大仏を超えた！" },
-    { threshold: 333, text: "東京タワーを超えた！" },
-    { threshold: 634, text: "スカイツリーに到達！" },
-    { threshold: 1000, text: "富士山より高い鏡餅！" },
-    { threshold: 5000, text: "宇宙へ...神の領域。" }
+const RANKS = [
+    { threshold: 0, name: "座頭級", emoji: "🪕", desc: "祝いとめでたさの象徴！" }, // 6: Zatou
+    { threshold: 10, name: "煙草級", emoji: "🚬", desc: "祭りや祝い事の必需品！" }, // 5: Tabako
+    { threshold: 20, name: "扇級", emoji: "🪭", desc: "末広がりに福を招く！" }, // 4: Ougi
+    { threshold: 30, name: "茄子級", emoji: "🍆", desc: "物事を成す（生す）！" }, // 3: Nasu
+    { threshold: 50, name: "鷹級", emoji: "🦅", desc: "威厳ある百鳥の王！" }, // 2: Taka
+    { threshold: 100, name: "富士級", emoji: "🗻", desc: "日本一の山！絶景かな。" } // 1: Fuji
 ];
 
 let game = null;
@@ -405,7 +403,48 @@ function init() {
 
     createBase();
     setupEvents();
+
+    // Load and display initial high score
+    const record = loadRecord();
+    updateBestScoreDisplay(record.highScore);
+
     gameLoop();
+}
+
+const STORAGE_KEY = 'kagamimochi_record_v1';
+
+function loadRecord() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : { highScore: 0, maxCombo: 0 };
+    } catch (e) {
+        console.error('Failed to load record', e);
+        return { highScore: 0, maxCombo: 0 };
+    }
+}
+
+function saveRecord(score, maxCombo) {
+    try {
+        const current = loadRecord();
+        const newRecord = {
+            highScore: Math.max(current.highScore, score),
+            maxCombo: Math.max(current.maxCombo, maxCombo)
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newRecord));
+        return newRecord;
+    } catch (e) {
+        console.error('Failed to save record', e);
+        return { highScore: score, maxCombo: maxCombo };
+    }
+}
+
+function updateBestScoreDisplay(score) {
+    const el = document.getElementById('home-best-score');
+    if (el) {
+        // Find rank for the best score
+        const rank = [...RANKS].reverse().find(r => r.threshold <= score) || RANKS[0];
+        el.textContent = `BEST: ${score}段 (${rank.name})`;
+    }
 }
 
 function createBase() {
@@ -475,7 +514,8 @@ function startGame() {
     game.cameraY = 0;
 
     document.getElementById('score').textContent = '0';
-    document.getElementById('comparison-text').textContent = '目指せ、富士山！';
+    document.getElementById('score').textContent = '0';
+    updateRankDisplay();
 
     spawnMochi();
     // updateBackground(); // 削除
@@ -639,7 +679,9 @@ function onLanded(mochi) {
 
         const distFromCenter = Math.abs(mochi.position.x - game.width / 2);
 
-        if (distFromCenter > 160 || mochi.position.y > game.baseBottomY + 20) {
+        // プレイエリアの半分を超えたらゲームオーバー（公平性のため固定値）
+        const maxDist = CONFIG.PLAY_AREA_WIDTH / 2 - CONFIG.MOCHI_WIDTH / 2 + 20;
+        if (distFromCenter > maxDist || mochi.position.y > game.baseBottomY + 20) {
             gameOver();
             return;
         }
@@ -685,10 +727,7 @@ function onLanded(mochi) {
         game.mochiState = 'none';
         game.currentMochi = null;
 
-        const comp = [...COMPARISONS].reverse().find(c => c.threshold <= game.score);
-        if (comp) {
-            document.getElementById('comparison-text').textContent = comp.text;
-        }
+        updateRankDisplay();
 
         // 次の餅を生成
         spawnMochi();
@@ -812,14 +851,48 @@ function gameOver() {
         // 効果音
         sounds.playGameOver();
 
+        // Save Record
+        const record = saveRecord(game.score, game.maxCombo);
+        updateBestScoreDisplay(record.highScore); // Update home screen display as well for next time
+
         document.getElementById('game-over-screen').classList.remove('hidden');
-        document.getElementById('final-score').textContent = game.score;
+        // document.getElementById('final-score').textContent = game.score; // 廃止
+        document.getElementById('final-score-small').textContent = game.score;
         document.getElementById('max-combo').textContent = game.maxCombo;
         document.getElementById('perfect-count').textContent = game.perfectCount;
 
-        const comp = [...COMPARISONS].reverse().find(c => c.threshold <= game.score);
-        document.getElementById('final-comparison').textContent = comp ? comp.text : 'もっと積めるはず！';
+        const rank = [...RANKS].reverse().find(r => r.threshold <= game.score) || RANKS[0];
+
+        document.getElementById('rank-emoji').textContent = rank.emoji;
+        document.getElementById('rank-name').textContent = rank.name;
+        document.getElementById('rank-desc').textContent = rank.desc;
+
+        // お祝いエフェクト (簡易的)
+        if (game.score >= 10) {
+            confettiEffect();
+        }
     }, 1500);
+}
+
+function updateRankDisplay() {
+    const rank = [...RANKS].reverse().find(r => r.threshold <= game.score) || RANKS[0];
+    document.getElementById('comparison-text').textContent = `${rank.emoji} ${rank.name}`;
+}
+
+function confettiEffect() {
+    // 簡易的な紙吹雪
+    const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722'];
+
+    for (let i = 0; i < 50; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti';
+        el.style.left = Math.random() * 100 + 'vw';
+        el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        el.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        el.style.animationDelay = (Math.random() * 1) + 's';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+    }
 }
 
 function zoomOutToShowAll() {
@@ -902,7 +975,8 @@ function dropOrange() {
 }
 
 function share() {
-    const text = `餅を【${game.score}段】積んだ！`;
+    const rank = [...RANKS].reverse().find(r => r.threshold <= game.score) || RANKS[0];
+    const text = `餅を積んで【${rank.name}】(${game.score}段)になったよ！ #餅積`;
     const url = window.location.href;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
     window.open(twitterUrl, '_blank');
@@ -955,12 +1029,17 @@ function update() {
         // 左右移動
         game.moveX += game.currentSpeed * game.moveDir;
 
+        // 公平性のため、移動範囲は固定のプレイエリア幅に制限
+        // 画面が広くてもPCが有利にならない
+        const playAreaLeft = (game.width - CONFIG.PLAY_AREA_WIDTH) / 2;
+        const playAreaRight = playAreaLeft + CONFIG.PLAY_AREA_WIDTH;
         const margin = CONFIG.MOCHI_WIDTH / 2 + 20;
-        if (game.moveX > game.width - margin) {
-            game.moveX = game.width - margin;
+
+        if (game.moveX > playAreaRight - margin) {
+            game.moveX = playAreaRight - margin;
             game.moveDir = -1;
-        } else if (game.moveX < margin) {
-            game.moveX = margin;
+        } else if (game.moveX < playAreaLeft + margin) {
+            game.moveX = playAreaLeft + margin;
             game.moveDir = 1;
         }
 

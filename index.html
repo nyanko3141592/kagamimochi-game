@@ -33,16 +33,28 @@
             <div id="start-screen" class="overlay">
                 <h1>餅積</h1>
                 <div class="subtitle">Kagamimochi Stacker</div>
+                <div id="home-best-score"
+                    style="margin-bottom: 20px; font-weight: bold; color: #C0A062; font-family: var(--font-en);">BEST: -
+                </div>
                 <p>タップで餅を落として積もう！<br>崩れたらお正月終了。</p>
                 <button id="start-button">はじめる</button>
             </div>
 
             <div id="game-over-screen" class="overlay hidden">
                 <h2>謹賀新年</h2>
-                <div class="final-score-wrap">
-                    <span id="final-score">0</span><span class="unit">段</span>
+                <div id="rank-container">
+                    <div id="rank-emoji"></div>
+                    <div id="rank-name"></div>
+                    <div id="rank-desc"></div>
                 </div>
+                <!-- <div class="final-score-wrap">
+                    <span id="final-score">0</span><span class="unit">段</span>
+                </div> -->
                 <div class="stats-container">
+                    <div class="stat-item">
+                        <span class="stat-label">Score</span>
+                        <span id="final-score-small" class="stat-value">0</span>
+                    </div>
                     <div class="stat-item">
                         <span class="stat-label">Perfect</span>
                         <span id="perfect-count" class="stat-value">0</span>
@@ -52,7 +64,7 @@
                         <span id="max-combo" class="stat-value">0</span>
                     </div>
                 </div>
-                <div id="final-comparison"></div>
+                <!-- <div id="final-comparison"></div> -->
                 <div class="result-actions">
                     <button id="share-button">結果を共有</button>
                     <button id="restart-button">もう一度</button>
