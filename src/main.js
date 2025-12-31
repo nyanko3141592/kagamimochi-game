@@ -87,14 +87,14 @@ function createBase() {
     const platform = Bodies.rectangle(cx, baseTopY, 180, 20, {
         isStatic: true,
         label: 'base',
-        render: { fillStyle: '#a1887f', strokeStyle: '#5d4037', lineWidth: 2 }
+        render: { fillStyle: '#1F1F24', strokeStyle: '#333333', lineWidth: 0 }
     });
 
     // 台座下部（正方形の土台）
     const stand = Bodies.rectangle(cx, baseTopY + 50, 100, 80, {
         isStatic: true,
         label: 'base',
-        render: { fillStyle: '#a1887f', strokeStyle: '#5d4037', lineWidth: 2 }
+        render: { fillStyle: '#1F1F24', strokeStyle: '#333333', lineWidth: 0 }
     });
 
     Composite.add(engine.world, [platform, stand]);
@@ -196,8 +196,8 @@ function spawnMochi() {
         density: 0.003,
         label: 'mochi',
         render: {
-            fillStyle: '#ffffff',
-            strokeStyle: '#bbbbbb',
+            fillStyle: '#FFFFFF',
+            strokeStyle: '#C8C0B0',
             lineWidth: 3
         }
     });
@@ -323,22 +323,26 @@ function updateCamera() {
     // 落下距離 + マージン（餅5個分）を上に確保
     const dropDistance = CONFIG.MOCHI_HEIGHT * CONFIG.DROP_MOCHI_COUNT;
     const margin = CONFIG.MOCHI_HEIGHT * 5;
+
+    // 画面上部に表示すべきY座標
     const neededTopY = topY - dropDistance - margin;
 
-    // カメラ位置を計算（neededTopYが画面上部に来るように）
-    // cameraYは負の値で上にスクロール
-    if (neededTopY < game.cameraY) {
+    // neededTopYが0より小さくなったらカメラを上にスクロール
+    if (neededTopY < 0) {
         game.cameraY = neededTopY;
+    } else {
+        game.cameraY = 0;
     }
 }
 
 function applyCamera() {
     const { render, width, height, cameraY } = game;
 
-    // Render.lookAtを使用してカメラ位置を適用
+    // cameraYが負の値のとき、その分だけ上を表示する
+    // 例: cameraY = -100 のとき、y: -100 ~ height-100 を表示
     Render.lookAt(render, {
-        min: { x: 0, y: -cameraY },
-        max: { x: width, y: height - cameraY }
+        min: { x: 0, y: cameraY },
+        max: { x: width, y: height + cameraY }
     });
 }
 
@@ -349,12 +353,61 @@ function gameOver() {
 
     dropOrange();
 
+    // ズームアウトして全体を見せる
+    zoomOutToShowAll();
+
     setTimeout(() => {
         document.getElementById('game-over-screen').classList.remove('hidden');
         document.getElementById('final-score').textContent = game.score;
         const comp = [...COMPARISONS].reverse().find(c => c.threshold <= game.score);
         document.getElementById('final-comparison').textContent = comp ? comp.text : 'もっと積めるはず！';
     }, 2000);
+}
+
+function zoomOutToShowAll() {
+    const { render, width, height, stackedMochis, baseBottomY } = game;
+
+    // 一番上の餅の位置を取得
+    let topY = game.baseTopY;
+    if (stackedMochis.length > 0) {
+        const topMochi = stackedMochis.reduce((t, m) =>
+            m.position.y < t.position.y ? m : t
+        );
+        topY = topMochi.position.y - 100; // 上に少しマージン
+    }
+
+    // 台座の下を含む範囲
+    const bottomY = baseBottomY + 50;
+
+    // 全体の高さ
+    const totalHeight = bottomY - topY;
+
+    // 画面に収まるようにスケールを計算
+    const viewHeight = height;
+    const viewWidth = width;
+
+    // アスペクト比を維持しながらフィットさせる
+    if (totalHeight > viewHeight) {
+        // 高さが画面を超える場合、全体が見えるようにズームアウト
+        const scale = viewHeight / totalHeight;
+        const centerY = (topY + bottomY) / 2;
+        const centerX = width / 2;
+
+        // スケーリングされた表示範囲を計算
+        const scaledWidth = viewWidth / scale;
+        const scaledHeight = viewHeight / scale;
+
+        Render.lookAt(render, {
+            min: { x: centerX - scaledWidth / 2, y: centerY - scaledHeight / 2 },
+            max: { x: centerX + scaledWidth / 2, y: centerY + scaledHeight / 2 }
+        });
+    } else {
+        // 画面に収まる場合はそのまま表示
+        Render.lookAt(render, {
+            min: { x: 0, y: topY },
+            max: { x: width, y: bottomY }
+        });
+    }
 }
 
 function dropOrange() {
