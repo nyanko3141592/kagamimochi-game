@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>餅積 - Kagamimochi Stacker</title>
+    <meta name="description" content="鏡餅をどこまでも高く積み上げよう。物理演算スタッキングゲーム。">
+    <link rel="stylesheet" href="./src/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="app">
+        <div id="game-container">
+            <canvas id="game-canvas"></canvas>
+
+            <div id="ui-overlay">
+                <div id="score-container">
+                    <span id="score">0</span><span class="unit">段</span>
+                </div>
+                <div id="comparison-container">
+                    <span id="comparison-text">目指せ、富士山！</span>
+                </div>
+            </div>
+
+            <div id="start-screen" class="overlay">
+                <h1>餅積</h1>
+                <div class="subtitle">Kagamimochi Stacker</div>
+                <p>タップで餅を落として積もう！<br>崩れたらお正月終了。</p>
+                <button id="start-button">はじめる</button>
+            </div>
+
+            <div id="game-over-screen" class="overlay hidden">
+                <h2>謹賀新年</h2>
+                <div class="final-score-wrap">
+                    <span id="final-score">0</span><span class="unit">段</span>
+                </div>
+                <div id="final-comparison"></div>
+                <div class="result-actions">
+                    <button id="share-button">結果を共有</button>
+                    <button id="restart-button">もう一度</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+</body>
+
+</html>
