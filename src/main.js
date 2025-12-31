@@ -60,10 +60,12 @@ function init() {
         score: 0,
         state: 'idle',
         currentMochi: null,
-        mochiState: 'none', // none, moving, dropping, landed
+        mochiState: 'none', // none, moving, dropping, settling
         stackedMochis: [],
         moveDir: 1,
         moveX: width / 2,
+        cameraY: 0,
+        baseBottomY: height - 40, // 台の一番下のY座標
     };
 
     createBase();
@@ -88,14 +90,10 @@ function createBase() {
         render: { fillStyle: '#a1887f', strokeStyle: '#5d4037', lineWidth: 2 }
     });
 
-    const floor = Bodies.rectangle(cx, height + 300, width * 2, 50, {
-        isStatic: true,
-        isSensor: true,
-        label: 'floor',
-        render: { visible: false }
-    });
+    Composite.add(engine.world, [platform, stand]);
 
-    Composite.add(engine.world, [platform, stand, floor]);
+    // 台の一番下を記録
+    game.baseBottomY = baseY + 40;
 }
 
 function setupEvents() {
@@ -138,9 +136,16 @@ function startGame() {
     game.state = 'playing';
     game.stackedMochis = [];
     game.moveX = game.width / 2;
+    game.cameraY = 0;
 
     document.getElementById('score').textContent = '0';
     document.getElementById('comparison-text').textContent = '目指せ、富士山！';
+
+    // カメラをリセット
+    Render.lookAt(game.render, {
+        min: { x: 0, y: 0 },
+        max: { x: game.width, y: game.height }
+    });
 
     spawnMochi();
 }
@@ -165,12 +170,13 @@ function restartGame() {
 function spawnMochi() {
     if (game.state !== 'playing') return;
 
-    const { engine, width } = game;
-    const spawnY = 100;
+    const { engine, width, cameraY } = game;
+    // カメラ位置に合わせてスポーン位置を調整
+    const spawnY = -cameraY + 120;
 
-    // 重要: 最初から isStatic: false で作成する
-    // setStatic の問題を回避
+    // 角丸の餅を作成（高さの50%の角丸）
     const mochi = Bodies.rectangle(width / 2, spawnY, CONFIG.MOCHI_WIDTH, CONFIG.MOCHI_HEIGHT, {
+        chamfer: { radius: CONFIG.MOCHI_HEIGHT * 0.5 },
         isStatic: false,
         friction: 0.9,
         frictionStatic: 1.0,
@@ -184,17 +190,12 @@ function spawnMochi() {
         }
     });
 
-    // 重力の影響を受けないようにする（手動で位置制御）
-    mochi.ignoreGravity = true;
-
     Composite.add(engine.world, mochi);
 
     game.currentMochi = mochi;
     game.mochiState = 'moving';
     game.moveX = width / 2;
     game.moveDir = 1;
-
-    console.log('Spawned mochi:', mochi.id, 'at', mochi.position);
 }
 
 function dropMochi() {
@@ -203,13 +204,8 @@ function dropMochi() {
     const mochi = game.currentMochi;
     game.mochiState = 'dropping';
 
-    // 重力を有効化
-    mochi.ignoreGravity = false;
-
     // 初速を与える
     Body.setVelocity(mochi, { x: 0, y: 5 });
-
-    console.log('Dropped mochi:', mochi.id, 'velocity:', mochi.velocity);
 }
 
 function handleCollision(event) {
@@ -221,16 +217,8 @@ function handleCollision(event) {
 
         if (!mochi || game.mochiState !== 'dropping') continue;
 
-        // 床に落ちた
-        const hitFloor = bodies.some(b => b.label === 'floor');
-        const isCurrent = bodies.includes(mochi);
-
-        if (hitFloor && isCurrent) {
-            gameOver();
-            return;
-        }
-
         // 台座か積まれた餅に着地
+        const isCurrent = bodies.includes(mochi);
         const landedOn = bodies.find(b =>
             b.label === 'base' ||
             (b.label === 'mochi' && b !== mochi && game.stackedMochis.includes(b))
@@ -247,21 +235,20 @@ function onLanded(mochi) {
     if (game.mochiState !== 'dropping') return;
     game.mochiState = 'settling';
 
-    console.log('Mochi landed:', mochi.id, 'pos:', mochi.position);
-
     // 安定するまで待つ
     setTimeout(() => {
         if (game.state !== 'playing') return;
 
         const distFromCenter = Math.abs(mochi.position.x - game.width / 2);
-        console.log('Distance from center:', distFromCenter);
 
         if (distFromCenter > 160) {
             gameOver();
             return;
         }
 
-        // 成功
+        // 成功 - 餅を固定する
+        Body.setStatic(mochi, true);
+
         game.score++;
         document.getElementById('score').textContent = game.score;
         game.stackedMochis.push(mochi);
@@ -273,16 +260,58 @@ function onLanded(mochi) {
             document.getElementById('comparison-text').textContent = comp.text;
         }
 
+        // カメラを更新してから次の餅を生成
+        updateCamera();
         spawnMochi();
     }, 400);
+}
+
+function checkCollapse() {
+    // 積まれた餅が台の一番下より下に落ちたかチェック
+    for (const mochi of game.stackedMochis) {
+        if (mochi.position.y > game.baseBottomY + 50) {
+            return true;
+        }
+    }
+
+    // 落下中の餅が画面外に落ちたかチェック
+    if (game.currentMochi && game.mochiState === 'dropping') {
+        if (game.currentMochi.position.y > game.baseBottomY + 100) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function updateCamera() {
+    if (game.stackedMochis.length < 4) return;
+
+    // 一番上の餅を取得
+    const topMochi = game.stackedMochis.reduce((t, m) =>
+        m.position.y < t.position.y ? m : t
+    );
+
+    // カメラが追従すべきY位置（餅が画面中央より上に来たらスクロール）
+    const targetCameraY = Math.max(0, (game.height / 2) - topMochi.position.y - 100);
+
+    // スムーズに追従
+    game.cameraY = targetCameraY;
+}
+
+function applyCamera() {
+    if (game.cameraY <= 0) return;
+
+    Render.lookAt(game.render, {
+        min: { x: 0, y: -game.cameraY },
+        max: { x: game.width, y: game.height - game.cameraY }
+    });
 }
 
 function gameOver() {
     if (game.state === 'gameover') return;
     game.state = 'gameover';
     game.mochiState = 'none';
-
-    console.log('Game Over! Score:', game.score);
 
     dropOrange();
 
@@ -342,12 +371,18 @@ function gameLoop() {
 function update() {
     if (game.state !== 'playing') return;
 
+    // 崩れ検知
+    if (checkCollapse()) {
+        gameOver();
+        return;
+    }
+
     const mochi = game.currentMochi;
     if (!mochi) return;
 
     // 移動中の餅の位置を手動更新
     if (game.mochiState === 'moving') {
-        // 重力を打ち消す（ignoreGravityフラグは効かないので手動）
+        // 重力を打ち消す
         Body.setVelocity(mochi, { x: 0, y: 0 });
 
         // 左右移動
@@ -362,9 +397,13 @@ function update() {
             game.moveDir = 1;
         }
 
-        // 位置を直接設定
-        Body.setPosition(mochi, { x: game.moveX, y: 100 });
+        // 位置を直接設定（カメラ位置を考慮）
+        const spawnY = -game.cameraY + 120;
+        Body.setPosition(mochi, { x: game.moveX, y: spawnY });
     }
+
+    // カメラ適用
+    applyCamera();
 }
 
 // 初期化
