@@ -339,11 +339,11 @@ const CONFIG = {
 
 const RANKS = [
     { threshold: 0, name: "座頭級", emoji: "🪕", desc: "祝いとめでたさの象徴！" }, // 6: Zatou
-    { threshold: 10, name: "煙草級", emoji: "🚬", desc: "祭りや祝い事の必需品！" }, // 5: Tabako
-    { threshold: 20, name: "扇級", emoji: "🪭", desc: "末広がりに福を招く！" }, // 4: Ougi
-    { threshold: 30, name: "茄子級", emoji: "🍆", desc: "物事を成す（生す）！" }, // 3: Nasu
-    { threshold: 50, name: "鷹級", emoji: "🦅", desc: "威厳ある百鳥の王！" }, // 2: Taka
-    { threshold: 100, name: "富士級", emoji: "🗻", desc: "日本一の山！絶景かな。" } // 1: Fuji
+    { threshold: 3, name: "煙草級", emoji: "🚬", desc: "祭りや祝い事の必需品！" }, // 5: Tabako
+    { threshold: 6, name: "扇級", emoji: "🪭", desc: "末広がりに福を招く！" }, // 4: Ougi
+    { threshold: 10, name: "茄子級", emoji: "🍆", desc: "物事を成す（生す）！" }, // 3: Nasu
+    { threshold: 15, name: "鷹級", emoji: "🦅", desc: "威厳ある百鳥の王！" }, // 2: Taka
+    { threshold: 20, name: "富士級", emoji: "🗻", desc: "日本一の山！絶景かな。" } // 1: Fuji
 ];
 
 let game = null;

@@ -1,73 +1,58 @@
-# 餅積 - Kagamimochi Stacker
+# NYA3NEKO2 GAMES
 
-## 概要 (Overview)
-「餅積 (Kagamimochi Stacker)」は、左右に動く餅をタイミングよくタップして落下させ、土台の上に積み上げていく物理演算パズルゲームです。お正月の伝統である鏡餅をモチーフにしており、高く積み上げるほど「東京タワー」や「富士山」など、様々な高さと比較される演出が楽しめます。
+A collection of casual games by Nya3Neko2, featuring the "Kagamimochi Stacker".
 
-## 仕様 (Specifications)
+## Project Structure
 
-### 技術スタック
-- **言語**: JavaScript (ES Modules)
-- **物理エンジン**: Matter.js
-- **バンドラー**: Vite
-- **スタイリング**: Vanilla CSS (フラットデザイン)
+This project is a Multi-Page Application configured with Vite.
 
-### ゲームの挙動・ルール (Game Behavior)
-1.  **開始**:
-    - 「はじめる」ボタンを押すとゲームがスタートします。
-    - 一番上の餅から餅5個分上の位置に新しい餅が出現し、左右に往復移動します。
+- **Root (`/`)**: Game Portal (Neo-Brutalism Design)
+- **`/mochi-stack/`**: Kagamimochi Stacker Game
 
-2.  **操作**:
-    - 画面をタップ、またはクリックすると、その瞬間の位置から餅が垂直に落下します。
-    - 餅は物理演算の影響を受けます（重力、摩擦、反発）。
+## Development
 
-3.  **判定**:
-    - **成功**: 餅が下の物体（土座、または既にある餅）に着地し、速度・回転ともに静止すると「成功」とみなされます。餅は固定化され、スコア（段数）が加算され、次の餅が出現します。
-    - **失敗 (ゲームオーバー)**:
-        - 餅が土台から大きく外れて落下した場合。
-        - 積み上げた塔が崩れ、台座より下に落ちた場合。
+### Setup
 
-4.  **ゲームオーバー演出**:
-    - 失敗すると、最後に「橙（だいだい）」と「葉っぱ」が落下してきて、積み上がった餅の頂上に乗ります（鏡餅の完成）。
-    - カメラがズームアウトして積み上げた餅の全体像を表示します。
-    - 2秒後に最終スコアと、その高さに相当する建造物などの比較テキストが表示されます。
-    - 「もう一度」ボタンでリセット、「結果を共有」でTwitter共有が可能です。
-
-5.  **視覚効果**:
-    - 積めば積むほど視点が上にスクロールしていきます（カメラ追従）。
-    - 餅のスポーン位置より上に餅5個分のマージンを確保してカメラが追従します。
-    - 餅は角丸（高さの50%の半径）の白い形状で、ストロークで輪郭を表現。
-
-6.  **公平性**:
-    - 落下距離は常に餅5個分で固定されており、画面サイズに関わらず同じ難易度でプレイ可能です。
-
-### 高さ比較テキスト
-| 段数 | 比較テキスト |
-|------|--------------|
-| 0 | 正月の始まり。 |
-| 1 | まずは1段目！縁起がいいね。 |
-| 3 | 膝の高さを超えた！ |
-| 10 | 人間と同じ高さ！デカい。 |
-| 20 | キリンと同じくらいの高さ！ |
-| 50 | 5階建てビルを超えた！ |
-| 100 | 奈良の大仏を超えた！ |
-| 333 | 東京タワーを超えた！ |
-| 634 | スカイツリーに到達！ |
-| 1000 | 富士山より高い鏡餅！ |
-| 5000 | 宇宙へ...神の領域。 |
-
-## ディレクトリ構成
-```
-kagamimochi-game/
-├── index.html        # エントリーポイント
-├── package.json      # 依存関係定義
-├── README.md         # プロジェクトドキュメント（本ファイル）
-├── public/           # 静的アセット
-└── src/
-    ├── main.js       # ゲームロジック（Matter.js制御、イベントハンドリング）
-    └── style.css     # スタイル定義（フラットデザイン）
+```bash
+npm install
 ```
 
-## 開発・実行方法
-1. **インストール**: `npm install`
-2. **ローカル実行**: `npm run dev`
-3. **ビルド**: `npm run build`
+### Run Locally
+
+```bash
+npm run dev
+```
+Access the portal at `http://localhost:5173/` and the game at `http://localhost:5173/mochi-stack/`.
+
+### Build
+
+```bash
+npm run build
+```
+Output will be in the `dist` directory.
+
+## Deployment
+
+Hosted on Cloudflare Pages.
+
+- **Project Name**: `kagamimochi-game`
+- **Production URL**: https://kagamimochi-game.pages.dev/
+- **Custom Domain**: https://game.nya3neko2.dev/ (Requires configuration in Cloudflare Dashboard)
+
+### Deploy Command
+
+```bash
+npx wrangler pages deploy dist --project-name kagamimochi-game
+```
+
+## Games
+
+### 🍊 Kagamimochi Stacker
+Stack the Mochi infinitely! A physics-based New Year celebration chaos game.
+- Powered by `matter-js`
+
+## Author
+**Nya3Neko2**
+- [Portfolio](https://nya3neko2.dev)
+- [Twitter](https://twitter.com/nya3_neko2)
+- [GitHub](https://github.com/nyanko3141592)
