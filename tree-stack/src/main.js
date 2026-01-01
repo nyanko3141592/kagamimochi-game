@@ -116,6 +116,39 @@ class BackgroundManager {
             { score: 12, emoji: '🎅', size: 100, offset: 70, spawned: false },
             { score: 15, emoji: '🌟', size: 120, offset: 0, spawned: false },
         ];
+
+        // 初期状態でいくつかの星を配置
+        this.initStars();
+    }
+
+    initStars() {
+        // コンテナのサイズを取得
+        const width = this.container.clientWidth || 400;
+        const height = this.container.clientHeight || 700;
+
+        for (let i = 0; i < 40; i++) {
+            const el = document.createElement('div');
+            el.className = 'bg-object bg-star';
+
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+
+            const size = 1 + Math.random() * 3;
+            el.style.width = `${size}px`;
+            el.style.height = `${size}px`;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            el.style.animationDelay = `${Math.random() * 3}s`;
+
+            this.layer.appendChild(el);
+            this.objects.push({
+                el,
+                x,
+                y,
+                parallax: 0.05 + Math.random() * 0.1,
+                type: 'decoration'
+            });
+        }
     }
 
     reset() {
@@ -124,6 +157,7 @@ class BackgroundManager {
         this.landmarks.forEach(l => l.spawned = false);
         this.updateColor(0);
         this.lastCameraY = 0;
+        this.initStars();
     }
 
     update(score, cameraY, width, height) {
@@ -135,10 +169,9 @@ class BackgroundManager {
 
     updateColor(score) {
         const colors = [
-            { score: 0, color: [26, 58, 58] },   // Dark Teal Night
-            { score: 20, color: [13, 31, 31] },   // Deeper Night
-            { score: 50, color: [5, 10, 20] },    // Midnight
-            { score: 100, color: [0, 0, 0] }      // Void
+            { score: 0, color: [5, 10, 20] },    // Deepest Teal/Blue
+            { score: 20, color: [2, 5, 10] },    // Midnight Blue
+            { score: 50, color: [0, 0, 0] }      // Black
         ];
 
         let start = colors[0];
@@ -259,8 +292,8 @@ class BackgroundManager {
     }
 
     getDecorationType(score) {
-        if (Math.random() < 0.5) return { className: 'bg-star', parallax: 0.1 };
-        return { className: 'bg-cloud', parallax: 0.5 };
+        // 全て星に変更
+        return { className: 'bg-star', parallax: 0.1 };
     }
 
     updatePositions(cameraY, height) {

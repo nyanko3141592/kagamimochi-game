@@ -72,7 +72,7 @@
 .bg-star {
     background: #FFF;
     border-radius: 50%;
-    box-shadow: 0 0 6px rgba(255, 255, 255, 0.9), 0 0 12px rgba(255, 215, 0, 0.4);
+    box-shadow: 0 0 4px #FFF, 0 0 8px #FFF, 0 0 15px rgba(255, 255, 255, 0.5);
     animation: twinkle 3s infinite alternate;
 }
 
