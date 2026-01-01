@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DARUMA ROLL - 初夢脱出爆走</title>
+    <link rel="icon" type="image/png" href="daruma.png">
+
+    <!-- OGP -->
+    <meta property="og:title" content="DARUMA ROLL - 初夢脱出爆走">
+    <meta property="og:description" content="初夢から逃げ続けて、正月休みを終わらせるな！ハイスピードだるまアクション。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://game.nya3neko2.dev/daruma-game/">
+    <meta property="og:image" content="https://game.nya3neko2.dev/daruma-game/daruma.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@nya3_neko2">
+    <meta name="twitter:title" content="DARUMA ROLL - 初夢脱出爆走">
+    <meta name="twitter:description" content="正月休み死守！縁起物を避けて1年完走を目指せ！">
+    <meta name="twitter:image" content="https://game.nya3neko2.dev/daruma-game/daruma.png">
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@500&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="score-board">
+            <div id="score-display">0m</div>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+
+        <div id="ui-layer">
+            <div id="start-screen" class="overlay">
+                <div class="content">
+                    <div class="title-image-container">
+                        <img src="daruma.png" alt="Daruma" class="ui-daruma-icon">
+                    </div>
+                    <h1 class="title">DARUMA ROLL</h1>
+                    <p class="subtitle">初夢脱出爆走</p>
+                    <p class="description">
+                        <strong>初夢から逃げ続けて、休みを終わらせるな！</strong>
+                    </p>
+                    <button id="start-btn">正月休みを守る（START）</button>
+                    <p class="hint">CLICK / SPACE / TAP でジャンプ</p>
+                </div>
+            </div>
+
+            <div id="result-screen" class="overlay hidden">
+                <div class="content">
+                    <div class="result-image-container">
+                        <img src="daruma.png" alt="Daruma" class="ui-daruma-icon">
+                    </div>
+                    <h1 class="title">夢の終わり</h1>
+                    <p class="result-label">休み死守期限</p>
+                    <div id="final-score">1/1まで</div>
+                    <div id="best-score-container">
+                        <span id="best-score-label">最長記録</span>
+                        <span id="best-score-value">1/1まで</span>
+                    </div>
+                    <div class="result-actions">
+                        <button id="restart-btn">もう一回</button>
+                        <button id="share-btn">結果を共有</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="main.js" type="module"></script>
+</body>
+
+</html>

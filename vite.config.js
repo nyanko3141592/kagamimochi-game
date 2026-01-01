@@ -9,7 +9,8 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: resolve(__dirname, 'index.html'),
-                mochi: resolve(__dirname, 'mochi-stack/index.html')
+                mochi: resolve(__dirname, 'mochi-stack/index.html'),
+                daruma: resolve(__dirname, 'daruma-game/index.html')
             }
         }
     }

@@ -1,0 +1,269 @@
+:root {
+    --daruma-red: #D63031;
+    --gold: #D4AF37;
+    --gold-bright: #FFD700;
+    --text-black: #2D3436;
+    --bg-light: #FDFEFE;
+    --border-width: 4px;
+    --font-main: 'Kiwi Maru', serif;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-10px) rotate(2deg);
+    }
+
+    100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: linear-gradient(to bottom, #FF4B2B 0%, #FF9068 100%);
+    color: var(--text-black);
+    font-family: var(--font-main);
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-container {
+    position: relative;
+    /* 画面内に収まるように2:1の比率を維持 */
+    width: 100dvw;
+    height: 50dvw;
+    max-height: 100dvh;
+    max-width: 200dvh;
+    background: #FFF;
+    overflow: hidden;
+    /* 中央配置のためのマージンオート */
+    margin: auto;
+}
+
+#score-board {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: clamp(0.9rem, 3.5vw, 1.6rem);
+    font-weight: 900;
+    z-index: 10;
+    text-shadow: 1px 1px 0 #FFF;
+}
+
+#game-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(2px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.overlay.hidden {
+    display: none;
+    /* opacityより確実 */
+}
+
+.content {
+    text-align: center;
+    padding: 5px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1px;
+}
+
+.ui-daruma-icon {
+    width: clamp(30px, 12vh, 60px);
+    height: clamp(30px, 12vh, 60px);
+    object-fit: contain;
+    animation: float 3s ease-in-out infinite;
+    filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.1));
+}
+
+.title-image-container,
+.result-image-container {
+    margin-bottom: 1px;
+}
+
+.title {
+    font-size: clamp(1.2rem, 8vw, 2.2rem);
+    font-weight: 900;
+    color: var(--daruma-red);
+    text-shadow: 1.5px 1.5px 0 var(--gold);
+    margin: 0;
+    line-height: 1;
+}
+
+.subtitle {
+    font-size: clamp(0.6rem, 3.5vw, 1rem);
+    color: var(--gold);
+    font-weight: 800;
+    margin-bottom: 1px;
+    letter-spacing: 0.05rem;
+}
+
+.description {
+    line-height: 1.1;
+    margin-bottom: 3px;
+    font-weight: 500;
+    font-size: clamp(0.6rem, 2.8vw, 0.8rem);
+    max-width: 90%;
+}
+
+.result-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 5px;
+    width: 90%;
+    max-width: 400px;
+    /* PCでの広がりすぎ防止 */
+    justify-content: center;
+}
+
+button {
+    padding: 8px 20px;
+    width: auto;
+    /* デフォルトは文字幅 */
+    font-size: clamp(0.75rem, 3.2vw, 1rem);
+    font-weight: 900;
+    font-family: inherit;
+    background: var(--daruma-red);
+    color: white;
+    border: 2px solid var(--text-black);
+    cursor: pointer;
+    box-shadow: 3px 3px 0px var(--gold);
+    transition: transform 0.1s;
+    white-space: nowrap;
+}
+
+.result-actions button {
+    flex: 1;
+    /* 結果画面の2つのボタンだけ等幅に広げる */
+}
+
+button:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px var(--gold);
+}
+
+#share-btn {
+    background: #000;
+    /* X-like color */
+    border-color: #333;
+}
+
+/* 縦長画面（スマホ縦持ちなど）の場合の調整 */
+@media (orientation: portrait) {
+    .result-image-container {
+        display: none;
+        /* だるまを消して高さを稼ぐ */
+    }
+}
+
+#final-score {
+    font-size: clamp(1.2rem, 7vw, 2.2rem);
+    font-weight: 900;
+    color: var(--text-black);
+    margin: 0;
+    line-height: 1;
+}
+
+.days-num {
+    font-size: clamp(1.8rem, 12vw, 3.2rem);
+    color: var(--daruma-red);
+    text-shadow: 2px 2px 0 var(--gold);
+}
+
+.date-str {
+    font-size: clamp(0.7rem, 3vw, 0.9rem);
+    color: var(--gold);
+}
+
+.event-comment {
+    font-size: clamp(0.6rem, 2.5vw, 0.7rem);
+    color: var(--daruma-red);
+    background: var(--gold-bright);
+    padding: 1px 4px;
+    border-radius: 10px;
+    display: inline-block;
+    margin-top: 1px;
+    font-weight: 900;
+    max-width: 95%;
+}
+
+#best-score-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+}
+
+#best-score-label {
+    background: var(--text-black);
+    color: #FFF;
+    padding: 0 4px;
+    font-size: clamp(0.45rem, 1.8vw, 0.6rem);
+    font-weight: 900;
+    border-radius: 3px;
+}
+
+#best-score-value {
+    font-size: clamp(0.6rem, 2.5vw, 0.8rem);
+    font-weight: 900;
+    color: var(--gold);
+}
+
+.hint {
+    margin-top: 2px;
+    font-size: clamp(0.5rem, 2vw, 0.6rem);
+    color: #888;
+}
+
+.result-label {
+    display: none !important;
+}
