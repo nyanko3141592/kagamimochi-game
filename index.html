@@ -26,16 +26,13 @@
 
     <style>
         :root {
-            --bg-color: #E0E7FF;
-            /* Light Indigo */
-            --primary: #FF3366;
-            /* Neon Pink */
+            --bg-color: #e8e8e8;
+            --primary: #e60012;
             --accent: #00CC66;
-            /* Neon Green */
             --yellow: #FAFF00;
-            /* Bright Yellow */
             --border: #000000;
             --shadow: 8px;
+            --cartridge-gray: #4a4a4a;
         }
 
         * {
@@ -43,11 +40,9 @@
         }
 
         body {
-            font-family: 'Space Mono', monospace;
-            background-color: var(--bg-color);
-            background-image: radial-gradient(#000 1px, transparent 1px);
-            background-size: 20px 20px;
-            color: var(--border);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
+            background: linear-gradient(180deg, #2d2d2d 0%, #1a1a1a 100%);
+            color: #fff;
             margin: 0;
             padding: 0;
             min-height: 100vh;
@@ -56,144 +51,274 @@
             overflow-x: hidden;
         }
 
-        /* Marquee Header */
+        /* Nintendo-style Header */
         header {
-            background: var(--primary);
+            background: #2d2d2d;
             color: #FFF;
-            border-bottom: 4px solid var(--border);
-            padding: 1rem 0;
-            overflow: hidden;
-            white-space: nowrap;
-            position: relative;
+            border-bottom: 1px solid #404040;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .marquee-content {
-            display: inline-block;
-            animation: marquee 20s linear infinite;
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .header-logo-text {
             font-family: 'Archivo Black', sans-serif;
-            font-size: 3rem;
-            text-transform: uppercase;
+            font-size: 1.3rem;
+            letter-spacing: 1px;
         }
 
-        @keyframes marquee {
-            0% {
-                transform: translateX(0);
-            }
+        .header-nav {
+            display: flex;
+            gap: 24px;
+        }
 
-            100% {
-                transform: translateX(-50%);
-            }
+        .header-nav a {
+            color: #888;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .header-nav a:hover {
+            color: #fff;
+        }
+
+        /* Hide old marquee */
+        .marquee-content {
+            display: none;
         }
 
         main {
             width: 100%;
-            max-width: 1000px;
-            margin: 4rem auto;
-            padding: 0 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 3rem;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+            flex: 1;
         }
 
         .section-title {
             grid-column: 1 / -1;
             font-family: 'Archivo Black', sans-serif;
-            font-size: 4rem;
-            line-height: 0.9;
-            margin-bottom: 2rem;
-            text-transform: uppercase;
-            -webkit-text-stroke: 2px var(--border);
-            color: var(--yellow);
-            text-shadow: 6px 6px 0px var(--border);
-            transform: rotate(-2deg);
+            font-size: 1.5rem;
+            line-height: 1;
+            margin-bottom: 16px;
+            text-transform: none;
+            color: #fff;
+            text-shadow: none;
+            text-align: left;
+            font-weight: 700;
         }
 
-        .game-card {
-            background: #FFFFFF;
-            border: 4px solid var(--border);
-            border-radius: 0;
-            padding: 0;
+        /* Switch Game Card Style - Based on actual Nintendo Switch cartridge */
+        .cartridge {
+            background: linear-gradient(180deg, #5a5a5a 0%, #4a4a4a 50%, #3a3a3a 100%);
+            border: none;
+            border-radius: 6px 6px 4px 4px;
+            padding: 8px 8px 0 8px;
             text-decoration: none;
             color: inherit;
             position: relative;
-            box-shadow: var(--shadow) var(--shadow) 0px var(--border);
-            transition: all 0.1s ease;
+            box-shadow:
+                0 6px 20px rgba(0,0,0,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.15),
+                inset 0 -1px 0 rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            height: 280px;
+            max-height: 280px;
+            overflow: visible;
+        }
+
+        /* Top notch/grip area */
+        .cartridge::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 12px;
+            background: linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 100%);
+            border-radius: 3px 3px 0 0;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        .cartridge:hover {
+            transform: translateY(-12px);
+            box-shadow:
+                0 18px 35px rgba(0,0,0,0.35),
+                inset 0 1px 0 rgba(255,255,255,0.15),
+                inset 0 -1px 0 rgba(0,0,0,0.3);
+        }
+
+        .cartridge:active {
+            transform: translateY(-6px);
+        }
+
+        /* Main label area container */
+        .cartridge-label {
+            margin: 0;
+            padding: 0;
+            border: none;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #fff;
+            flex: 1;
             display: flex;
             flex-direction: column;
         }
 
-        .game-card:hover {
-            transform: translate(4px, 4px);
-            box-shadow: 0px 0px 0px var(--border);
+        /* Red header band (Nintendo Switch style) */
+        .label-header {
+            background: linear-gradient(180deg, #e60012 0%, #c4000f 100%);
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #a0000c;
+            flex-shrink: 0;
         }
 
-        .game-card:active {
-            transform: translate(6px, 6px);
+        .label-header-logo {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 0.7rem;
+            color: #fff;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .card-image {
+        .label-header-logo::before {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 2px;
+        }
+
+        /* White label art area */
+        .label-art {
             width: 100%;
-            height: 180px;
-            background: var(--border);
+            height: 90px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-bottom: 4px solid var(--border);
+            position: relative;
             overflow: hidden;
-            background-color: #EEE;
+            background: #fff;
+            border-bottom: 1px solid #eee;
         }
 
-        .card-icon {
-            font-size: 5rem;
+        .label-art::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(0,0,0,0.02) 100%);
+            pointer-events: none;
         }
 
-        .card-content {
-            padding: 1.5rem;
+        .label-icon {
+            font-size: 3rem;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
         }
 
-        .card-title {
-            font-family: 'Archivo Black', sans-serif;
-            font-size: 1.8rem;
-            margin: 0;
-            text-transform: uppercase;
-            line-height: 1;
-            margin-bottom: 0.5rem;
-        }
-
-        .card-desc {
-            font-size: 0.9rem;
-            line-height: 1.4;
-            margin: 0;
-            font-weight: 700;
-        }
-
-        .card-tags {
-            margin-top: 1.5rem;
+        /* Title content area */
+        .label-content {
+            padding: 10px;
+            background: #fff;
+            flex: 1;
             display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
+            flex-direction: column;
+            border-top: 1px solid #f0f0f0;
+            overflow: hidden;
         }
 
-        .tag {
-            background: var(--accent);
-            color: var(--border);
-            border: 2px solid var(--border);
-            padding: 0.2rem 0.6rem;
-            font-size: 0.8rem;
-            font-weight: 700;
+        .label-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 0.95rem;
+            margin: 0;
             text-transform: uppercase;
-            box-shadow: 2px 2px 0 var(--border);
+            line-height: 1.2;
+            color: #1a1a1a;
+        }
+
+        .label-subtitle {
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .label-desc {
+            font-size: 0.65rem;
+            line-height: 1.4;
+            margin: 8px 0 0;
+            color: #999;
+            flex: 1;
+        }
+
+        /* Bottom area with product code */
+        .cartridge-connector {
+            height: 28px;
+            background: linear-gradient(180deg, #5a5a5a 0%, #4a4a4a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            margin-top: 6px;
+            border-radius: 0 0 4px 4px;
+            flex-shrink: 0;
+        }
+
+        .connector-pin {
+            display: none;
+        }
+
+        .cartridge-connector::before {
+            content: attr(data-code);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.6rem;
+            color: #888;
+            letter-spacing: 1px;
         }
 
         .badge-new {
             position: absolute;
-            top: -20px;
-            right: -20px;
+            top: -25px;
+            right: -15px;
             background: var(--yellow);
             color: var(--border);
             border: 3px solid var(--border);
-            width: 70px;
-            height: 70px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -203,62 +328,401 @@
             z-index: 10;
             box-shadow: 3px 3px 0 var(--border);
             font-family: 'Archivo Black', sans-serif;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             animation: wiggle 2s infinite ease-in-out;
         }
 
         @keyframes wiggle {
-
-            0%,
-            100% {
+            0%, 100% {
                 transform: rotate(15deg) scale(1);
             }
-
             50% {
                 transform: rotate(5deg) scale(1.1);
             }
         }
 
-        /* Brutalist Footer */
+        /* Console insert animation overlay */
+        .console-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .console-overlay.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Switch-style console */
+        .console-body {
+            width: 700px;
+            height: 320px;
+            background: linear-gradient(180deg, #2d2d2d 0%, #1a1a1a 100%);
+            border: none;
+            border-radius: 12px;
+            position: relative;
+            box-shadow:
+                0 20px 60px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Left Joy-Con */
+        .console-body::before {
+            content: '';
+            position: absolute;
+            left: -50px;
+            top: 10px;
+            width: 60px;
+            height: 300px;
+            background: linear-gradient(180deg, #00d4ff 0%, #00a8cc 100%);
+            border-radius: 30px 0 0 30px;
+            box-shadow:
+                inset 0 2px 4px rgba(255,255,255,0.3),
+                inset 0 -2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Right Joy-Con */
+        .console-body::after {
+            content: '';
+            position: absolute;
+            right: -50px;
+            top: 10px;
+            width: 60px;
+            height: 300px;
+            background: linear-gradient(180deg, #ff3366 0%, #cc2952 100%);
+            border-radius: 0 30px 30px 0;
+            box-shadow:
+                inset 0 2px 4px rgba(255,255,255,0.3),
+                inset 0 -2px 4px rgba(0,0,0,0.2);
+        }
+
+        .console-slot {
+            position: absolute;
+            top: -15px;
+            right: 80px;
+            width: 30px;
+            height: 20px;
+            background: #0a0a0a;
+            border: 2px solid #000;
+            border-radius: 3px 3px 0 0;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.8);
+        }
+
+        .console-screen {
+            width: 580px;
+            height: 280px;
+            background: #000;
+            border: 4px solid #111;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .console-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .screen-content {
+            color: #fff;
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1.5rem;
+            text-align: center;
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .screen-content .loading-icon {
+            font-size: 4rem;
+            animation: bounce 0.6s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .screen-content.show {
+            animation: screenOn 0.5s ease forwards;
+        }
+
+        @keyframes screenOn {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .console-label {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1rem;
+            color: #444;
+            letter-spacing: 3px;
+        }
+
+        /* Switch game card for insertion - behind the console */
+        .inserting-cartridge {
+            position: absolute;
+            top: -150px;
+            right: 65px;
+            transform: scale(0.35);
+            width: 80px;
+            height: 100px;
+            background: linear-gradient(180deg, #5a5a5a 0%, #4a4a4a 100%);
+            border: none;
+            border-radius: 6px;
+            z-index: -1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .inserting-cartridge.animate {
+            animation: insertSwitchCard 1s ease-in-out forwards;
+        }
+
+        @keyframes insertSwitchCard {
+            0% {
+                top: -150px;
+                transform: scale(0.35);
+            }
+            40% {
+                top: -30px;
+                transform: scale(0.35);
+            }
+            100% {
+                top: 5px;
+                transform: scale(0.35);
+            }
+        }
+
+        .mini-label {
+            margin: 0;
+            flex: 1;
+            background: #fff;
+            border: none;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+        }
+
+        .mini-connector {
+            height: 20px;
+            background: linear-gradient(180deg, #5a5a5a 0%, #4a4a4a 100%);
+        }
+
+        /* Nintendo-style Footer */
         footer {
             margin-top: auto;
-            border-top: 4px solid var(--border);
-            background: #FFF;
-            padding: 2rem;
+            border-top: 1px solid #404040;
+            background: #2d2d2d;
+            padding: 24px;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
-            font-weight: 700;
+            align-items: center;
         }
 
         .footer-logo {
             font-family: 'Archivo Black', sans-serif;
-            font-size: 1.5rem;
-            background: var(--border);
-            color: #FFF;
-            padding: 0.2rem 0.5rem;
+            font-size: 1rem;
+            color: #666;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 20px;
         }
 
         .social-links a {
-            color: var(--border);
+            color: #666;
             text-decoration: none;
-            border-bottom: 3px solid var(--primary);
-            font-weight: 700;
-            margin-left: 1rem;
+            font-size: 0.85rem;
+            transition: color 0.2s;
         }
 
         .social-links a:hover {
-            background: var(--primary);
-            color: #FFF;
+            color: #fff;
         }
 
-        @media (max-width: 600px) {
-            .section-title {
-                font-size: 2.5rem;
+        @media (max-width: 800px) {
+            header {
+                padding: 12px 16px;
+            }
+
+            .header-logo-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 1rem;
+            }
+
+            .header-logo-text {
+                font-size: 1rem;
+            }
+
+            .header-nav {
+                display: none;
             }
 
             main {
-                margin: 2rem auto;
+                padding: 24px 16px;
+            }
+
+            .section-title {
+                font-size: 1.2rem;
+                margin-bottom: 12px;
+            }
+
+            .cartridge {
+                height: 220px;
+                max-height: 220px;
+                padding: 6px 6px 0 6px;
+            }
+
+            .cartridge::before {
+                top: -6px;
+                height: 10px;
+            }
+
+            .label-header {
+                padding: 6px 8px;
+            }
+
+            .label-header-logo {
+                font-size: 0.55rem;
+            }
+
+            .label-header-logo::before {
+                width: 12px;
+                height: 12px;
+            }
+
+            .label-art {
+                height: 80px;
+            }
+
+            .label-icon {
+                font-size: 2.5rem;
+            }
+
+            .label-content {
+                padding: 8px;
+            }
+
+            .label-title {
+                font-size: 0.75rem;
+            }
+
+            .label-subtitle {
+                font-size: 0.6rem;
+            }
+
+            .label-desc {
+                display: none;
+            }
+
+            .cartridge-connector {
+                height: 28px;
+                margin-top: 6px;
+            }
+
+            .cartridge-connector::before {
+                font-size: 0.5rem;
+            }
+
+            .console-body {
+                width: 340px;
+                height: 200px;
+            }
+
+            .console-body::before,
+            .console-body::after {
+                width: 40px;
+                height: 180px;
+                top: 10px;
+            }
+
+            .console-body::before {
+                left: -35px;
+            }
+
+            .console-body::after {
+                right: -35px;
+            }
+
+            .console-screen {
+                width: 280px;
+                height: 160px;
+            }
+
+            .console-slot {
+                right: 50px;
+                width: 24px;
+                height: 16px;
+            }
+
+            .inserting-cartridge {
+                right: 38px;
+                transform: scale(0.25);
+            }
+
+            .inserting-cartridge.animate {
+                animation: insertSwitchCardMobile 1s ease-in-out forwards;
+            }
+
+            @keyframes insertSwitchCardMobile {
+                0% {
+                    top: -150px;
+                    transform: scale(0.25);
+                }
+                40% {
+                    top: -25px;
+                    transform: scale(0.25);
+                }
+                100% {
+                    top: 5px;
+                    transform: scale(0.25);
+                }
+            }
+
+            .screen-content {
+                font-size: 1rem;
+            }
+
+            .screen-content .loading-icon {
+                font-size: 2.5rem;
             }
         }
     </style>
@@ -266,92 +730,181 @@
 
 <body>
     <header>
-        <div class="marquee-content">
-            NYA3NEKO2 GAMES // PLAY NOW // HAVE FUN // NYA3NEKO2 GAMES // PLAY NOW // HAVE FUN //
+        <div class="header-logo">
+            <div class="header-logo-icon">🎮</div>
+            <span class="header-logo-text">NYA3NEKO2</span>
         </div>
+        <nav class="header-nav">
+            <a href="https://nya3neko2.dev" target="_blank">Portfolio</a>
+            <a href="https://twitter.com/nya3_neko2" target="_blank">Twitter</a>
+            <a href="https://github.com/nyanko3141592" target="_blank">GitHub</a>
+        </nav>
     </header>
 
     <main>
         <div class="section-title">
-            Select<br>Cartridge
+            Games
         </div>
 
-        <a href="/mochi-rhythm/" class="game-card">
+        <!-- Mochi Rhythm -->
+        <div class="cartridge" data-href="/mochi-rhythm/" data-icon="🍡" data-title="MOCHI RHYTHM" data-color="#FEE08B">
             <div class="badge-new">NEW!</div>
-            <div class="card-image" style="background: #FEE08B;">
-                <span class="card-icon">🍡</span>
-            </div>
-            <div class="card-content">
-                <h2 class="card-title">Mochi Rhythm<br>もちリズム</h2>
-                <div style="width: 100%; height: 4px; background: var(--border); margin: 1rem 0;"></div>
-                <p class="card-desc">Hit the Mochi Mortar at the perfect timing! Avoid the hand! A festive Japanese
-                    rhythm game.</p>
-                <div class="card-tags">
-                    <span class="tag">Rhythm</span>
-                    <span class="tag">Festive</span>
-                    <span class="tag">Action</span>
+            <div class="cartridge-label">
+                <div class="label-header">
+                    <span class="label-header-logo">NYA3NEKO2</span>
+                </div>
+                <div class="label-art">
+                    <span class="label-icon">🍡</span>
+                </div>
+                <div class="label-content">
+                    <h2 class="label-title">Mochi Rhythm</h2>
+                    <div class="label-subtitle">もちリズム</div>
+                    <p class="label-desc">Hit the Mochi Mortar at the perfect timing!</p>
                 </div>
             </div>
-        </a>
+            <div class="cartridge-connector" data-code="LA-H-RHYTHM-JPN"></div>
+        </div>
 
-        <a href="/tree-stack/" class="game-card">
-            <div class="card-image" style="background: #2D6A4F;">
-                <span class="card-icon">🎄</span>
-            </div>
-            <div class="card-content">
-                <h2 class="card-title">Tree Stacker<br>ツリー積</h2>
-                <div style="width: 100%; height: 4px; background: var(--border); margin: 1rem 0;"></div>
-                <p class="card-desc">Build the ultimate Christmas tree! Stack the branches infinitely into the winter
-                    night sky.</p>
-                <div class="card-tags">
-                    <span class="tag">Physics</span>
-                    <span class="tag">Holiday</span>
-                    <span class="tag">Endless</span>
+        <!-- Tree Stacker -->
+        <div class="cartridge" data-href="/tree-stack/" data-icon="🎄" data-title="TREE STACKER" data-color="#2D6A4F">
+            <div class="cartridge-label">
+                <div class="label-header">
+                    <span class="label-header-logo">NYA3NEKO2</span>
+                </div>
+                <div class="label-art">
+                    <span class="label-icon">🎄</span>
+                </div>
+                <div class="label-content">
+                    <h2 class="label-title">Tree Stacker</h2>
+                    <div class="label-subtitle">ツリー積</div>
+                    <p class="label-desc">Build the ultimate Christmas tree!</p>
                 </div>
             </div>
-        </a>
+            <div class="cartridge-connector" data-code="LA-H-TREES-JPN"></div>
+        </div>
 
-        <a href="/mochi-stack/" class="game-card">
-            <div class="card-image">
-                <span class="card-icon">🍊</span>
-            </div>
-            <div class="card-content">
-                <h2 class="card-title">Kagamimochi<br>Stacker</h2>
-                <div style="width: 100%; height: 4px; background: var(--border); margin: 1rem 0;"></div>
-                <p class="card-desc">Stack the Mochi infinitely. Physics-based new year celebration chaos.</p>
-                <div class="card-tags">
-                    <span class="tag">Physics</span>
-                    <span class="tag">Casual</span>
+        <!-- Kagamimochi Stacker -->
+        <div class="cartridge" data-href="/mochi-stack/" data-icon="🍊" data-title="KAGAMIMOCHI" data-color="#FFF5E6">
+            <div class="cartridge-label">
+                <div class="label-header">
+                    <span class="label-header-logo">NYA3NEKO2</span>
+                </div>
+                <div class="label-art">
+                    <span class="label-icon">🍊</span>
+                </div>
+                <div class="label-content">
+                    <h2 class="label-title">Kagamimochi Stacker</h2>
+                    <div class="label-subtitle">鏡餅スタッカー</div>
+                    <p class="label-desc">Stack the Mochi infinitely!</p>
                 </div>
             </div>
-        </a>
+            <div class="cartridge-connector" data-code="LA-H-MOCHI-JPN"></div>
+        </div>
 
-        <a href="/daruma-game/" class="game-card">
-            <div class="card-image" style="background: #D63031;">
-                <span class="card-icon">🔴</span>
-            </div>
-            <div class="card-content">
-                <h2 class="card-title">Daruma Roll<br>初夢脱出爆走</h2>
-                <div style="width: 100%; height: 4px; background: var(--border); margin: 1rem 0;"></div>
-                <p class="card-desc">Escape from the lucky "First Dream" items! Don't let your New Year's holiday end.
-                    High-speed action runner.</p>
-                <div class="card-tags">
-                    <span class="tag">Action</span>
-                    <span class="tag">Festive</span>
-                    <span class="tag">High-Speed</span>
+        <!-- Daruma Roll -->
+        <div class="cartridge" data-href="/daruma-game/" data-icon="🔴" data-title="DARUMA ROLL" data-color="#FFE5E5">
+            <div class="cartridge-label">
+                <div class="label-header">
+                    <span class="label-header-logo">NYA3NEKO2</span>
+                </div>
+                <div class="label-art">
+                    <span class="label-icon">🔴</span>
+                </div>
+                <div class="label-content">
+                    <h2 class="label-title">Daruma Roll</h2>
+                    <div class="label-subtitle">初夢脱出爆走</div>
+                    <p class="label-desc">Escape from lucky items!</p>
                 </div>
             </div>
-        </a>
+            <div class="cartridge-connector" data-code="LA-H-DRUMA-JPN"></div>
+        </div>
     </main>
 
+    <!-- Switch Console Insert Animation Overlay -->
+    <div class="console-overlay" id="consoleOverlay">
+        <div class="console-body">
+            <div class="console-slot"></div>
+            <div class="inserting-cartridge" id="insertingCartridge">
+                <div class="mini-label" id="miniLabel">🎮</div>
+                <div class="mini-connector"></div>
+            </div>
+            <div class="console-screen">
+                <div class="screen-content" id="screenContent">
+                    <span class="loading-icon" id="loadingIcon">🎮</span>
+                    <span id="gameTitle">LOADING...</span>
+                </div>
+            </div>
+            <div class="console-label">NYA3NEKO2</div>
+        </div>
+    </div>
+
     <footer>
-        <div class="footer-logo">NYA3NEKO2</div>
+        <div class="footer-logo">© 2025 NYA3NEKO2</div>
         <div class="social-links">
-            <a href="https://nya3neko2.dev" target="_blank">PORTFOLIO</a>
-            <a href="https://twitter.com/nya3_neko2" target="_blank">TWITTER</a>
-            <a href="https://github.com/nyanko3141592" target="_blank">GITHUB</a>
+            <a href="https://nya3neko2.dev" target="_blank">Portfolio</a>
+            <a href="https://twitter.com/nya3_neko2" target="_blank">Twitter</a>
+            <a href="https://github.com/nyanko3141592" target="_blank">GitHub</a>
         </div>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cartridges = document.querySelectorAll('.cartridge');
+            const overlay = document.getElementById('consoleOverlay');
+            const insertingCartridge = document.getElementById('insertingCartridge');
+            const miniLabel = document.getElementById('miniLabel');
+            const screenContent = document.getElementById('screenContent');
+            const gameTitle = document.getElementById('gameTitle');
+            const loadingIcon = document.getElementById('loadingIcon');
+
+            cartridges.forEach(cartridge => {
+                cartridge.addEventListener('click', () => {
+                    const href = cartridge.dataset.href;
+                    const icon = cartridge.dataset.icon;
+                    const title = cartridge.dataset.title;
+                    const color = cartridge.dataset.color;
+
+                    // Set cartridge icon and game title
+                    miniLabel.textContent = icon;
+                    miniLabel.style.background = color;
+                    loadingIcon.textContent = icon;
+                    gameTitle.textContent = title;
+
+                    // Show overlay
+                    overlay.classList.add('active');
+
+                    // Reset animation
+                    insertingCartridge.classList.remove('animate');
+                    screenContent.classList.remove('show');
+
+                    // Trigger reflow
+                    void insertingCartridge.offsetWidth;
+
+                    // Start cartridge insert animation
+                    setTimeout(() => {
+                        insertingCartridge.classList.add('animate');
+                    }, 100);
+
+                    // Show screen content after cartridge is inserted
+                    setTimeout(() => {
+                        screenContent.classList.add('show');
+                    }, 1200);
+
+                    // Navigate to game after animation
+                    setTimeout(() => {
+                        window.location.href = href;
+                    }, 2000);
+                });
+            });
+
+            // Close overlay on click (optional - for testing)
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
