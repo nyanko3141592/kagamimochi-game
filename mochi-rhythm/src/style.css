@@ -476,16 +476,6 @@ h1 {
     to { background-position: 200% center; }
 }
 
-.result-panel {
-    background: #fff;
-    border: 6px solid #000;
-    padding: 50px;
-    text-align: center;
-    max-width: 600px;
-    width: 90%;
-    box-shadow: 20px 20px 0 #000;
-}
-
 #game-controls {
     position: absolute;
     bottom: 20px;
