@@ -248,19 +248,28 @@ function gameLoop(time) {
 
 function drawBackground(width, height, judgmentY) {
     const centerX = width / 2;
-    // Lanes
+    // Lanes - Very subtle to let the background path show through
     ctx.fillStyle = 'rgba(0,0,0,0.03)';
     ctx.fillRect(centerX - 95, 0, 90, height);
     ctx.fillRect(centerX + 5, 0, 90, height);
 
-    // Lane lines
-    ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
+    // Lane lines - Thin and subtle
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(centerX - 95, 0); ctx.lineTo(centerX - 95, height);
     ctx.moveTo(centerX - 5, 0); ctx.lineTo(centerX - 5, height);
     ctx.moveTo(centerX + 5, 0); ctx.lineTo(centerX + 5, height);
     ctx.moveTo(centerX + 95, 0); ctx.lineTo(centerX + 95, height);
     ctx.stroke();
+
+    // Judgment Line (Dashed)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.setLineDash([10, 10]);
+    ctx.beginPath();
+    ctx.moveTo(centerX - 100, judgmentY);
+    ctx.lineTo(centerX + 100, judgmentY);
+    ctx.stroke();
+    ctx.setLineDash([]);
 }
 
 function drawStack(width, height) {
