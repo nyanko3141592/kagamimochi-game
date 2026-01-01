@@ -13,6 +13,18 @@ const statNiceEl = document.getElementById('stat-nice');
 const statMaxComboEl = document.getElementById('stat-max-combo');
 const resultCommentEl = document.getElementById('result-comment');
 
+// 和の伝統色
+const COLORS = {
+    sakura: '#fedfe1',
+    kokin: '#f7c242',
+    shu: '#eb6238',
+    matsuba: '#3b7960',
+    sora: '#77b5d9',
+    beni: '#c53d43',
+    shironeri: '#fcfaf2',
+    wasurenagusa: '#7bced7'
+};
+
 // Assets
 const images = {
     usu: new Image(),
@@ -20,79 +32,317 @@ const images = {
     kinePre: new Image(),
     kineAfter: new Image(),
     handHuman: new Image(),
-    kineNote: new Image(),
-    handNote: new Image(),
 };
 
-images.usu = new Image(); images.usu.src = '/mochi-rhythm/images/usu.png';
-images.pile = new Image(); images.pile.src = '/mochi-rhythm/images/mochi_pile_white.png';
-images.kinePre = new Image(); images.kinePre.src = '/mochi-rhythm/images/kine-human-pre.png';
-images.kineAfter = new Image(); images.kineAfter.src = '/mochi-rhythm/images/kine-human-after.png';
-images.handHuman = new Image(); images.handHuman.src = '/mochi-rhythm/images/hand-human.png';
-images.kineNote = new Image(); images.kineNote.src = '/mochi-rhythm/images/kine_white.png';
-images.handNote = new Image(); images.handNote.src = '/mochi-rhythm/images/hand_white.png';
+images.usu.src = '/mochi-rhythm/images/usu.png';
+images.pile.src = '/mochi-rhythm/images/mochi_pile_white.png';
+images.kinePre.src = '/mochi-rhythm/images/kine-human-pre.png';
+images.kineAfter.src = '/mochi-rhythm/images/kine-human-after.png';
+images.handHuman.src = '/mochi-rhythm/images/hand-human.png';
 
+// サウンドマネージャー（失敗音のみ）
 class SoundManager {
     constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.7;
         this.masterGain.connect(this.ctx.destination);
     }
-    playHit() {
-        if (this.ctx.state === 'suspended') this.ctx.resume();
-        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-        osc.type = 'sine'; osc.frequency.setValueAtTime(400, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.1);
-        osc.connect(gain); gain.connect(this.masterGain);
-        osc.start(); osc.stop(this.ctx.currentTime + 0.1);
-    }
-    playClap() {
-        if (this.ctx.state === 'suspended') this.ctx.resume();
-        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-        osc.type = 'triangle'; osc.frequency.setValueAtTime(700, this.ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(1200, this.ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.1);
-        osc.connect(gain); gain.connect(this.masterGain);
-        osc.start(); osc.stop(this.ctx.currentTime + 0.1);
-    }
-    playPerfect() {
-        if (this.ctx.state === 'suspended') this.ctx.resume();
-        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-        osc.type = 'sine'; osc.frequency.setValueAtTime(880, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1320, this.ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.2);
-        osc.connect(gain); gain.connect(this.masterGain);
-        osc.start(); osc.stop(this.ctx.currentTime + 0.2);
-    }
+
+    // 空振り音（軽いスカッ）
     playSka() {
         if (this.ctx.state === 'suspended') this.ctx.resume();
-        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-        osc.type = 'square'; osc.frequency.setValueAtTime(100, this.ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(30, this.ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.15);
-        osc.connect(gain); gain.connect(this.masterGain);
-        osc.start(); osc.stop(this.ctx.currentTime + 0.15);
+        const t = this.ctx.currentTime;
+
+        // 風切り音的なノイズ
+        const bufferSize = this.ctx.sampleRate * 0.08;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize) * 0.3;
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.value = 2000;
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+        noise.start(t);
     }
+
+    // 失敗音（ガッカリ感のある下降音）
     playMiss() {
         if (this.ctx.state === 'suspended') this.ctx.resume();
-        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, this.ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(50, this.ctx.currentTime + 0.2);
-        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.2);
-        osc.connect(gain); gain.connect(this.masterGain);
-        osc.start(); osc.stop(this.ctx.currentTime + 0.2);
+        const t = this.ctx.currentTime;
+
+        // 低い不協和音
+        const osc1 = this.ctx.createOscillator();
+        const gain1 = this.ctx.createGain();
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(180, t);
+        osc1.frequency.exponentialRampToValueAtTime(80, t + 0.25);
+        gain1.gain.setValueAtTime(0.2, t);
+        gain1.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+        osc1.connect(gain1);
+        gain1.connect(this.masterGain);
+        osc1.start(t);
+        osc1.stop(t + 0.35);
+
+        // 不快な高音
+        const osc2 = this.ctx.createOscillator();
+        const gain2 = this.ctx.createGain();
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(350, t);
+        osc2.frequency.exponentialRampToValueAtTime(150, t + 0.15);
+        gain2.gain.setValueAtTime(0.08, t);
+        gain2.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+        osc2.connect(gain2);
+        gain2.connect(this.masterGain);
+        osc2.start(t);
+        osc2.stop(t + 0.25);
+
+        // ノイズ成分
+        const bufferSize = this.ctx.sampleRate * 0.1;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize) * 0.15;
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.1, t);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+        noise.connect(noiseGain);
+        noiseGain.connect(this.masterGain);
+        noise.start(t);
+    }
+
+    // 和風ファンファーレ（リザルト用）- より豪華に
+    playFanfare() {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const t = this.ctx.currentTime;
+
+        // 三和音を同時に鳴らす
+        const chords = [
+            { freq: 261.6, delay: 0 },     // ド
+            { freq: 329.6, delay: 0.05 },  // ミ
+            { freq: 392.0, delay: 0.1 },   // ソ
+            { freq: 523.3, delay: 0.3 },   // 高いド
+        ];
+
+        chords.forEach(({ freq, delay }) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t + delay);
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.2, t + delay + 0.05);
+            gain.gain.setValueAtTime(0.2, t + delay + 0.4);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + delay + 0.8);
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(t);
+            osc.stop(t + 1.5);
+        });
+
+        // キラキラ音
+        for (let i = 0; i < 5; i++) {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            const freq = 800 + Math.random() * 800;
+            osc.frequency.setValueAtTime(freq, t + 0.5 + i * 0.1);
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.08, t + 0.5 + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.7 + i * 0.1);
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(t);
+            osc.stop(t + 1.2);
+        }
+    }
+
+    // ドラムロール（リザルト演出用）
+    playDrumroll(duration = 1) {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const t = this.ctx.currentTime;
+        const hits = Math.floor(duration * 30);
+
+        for (let i = 0; i < hits; i++) {
+            const hitTime = t + (i / hits) * duration;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(100 + Math.random() * 30, hitTime);
+            const volume = 0.05 + (i / hits) * 0.15;
+            gain.gain.setValueAtTime(volume, hitTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, hitTime + 0.03);
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(hitTime);
+            osc.stop(hitTime + 0.05);
+        }
     }
 }
 
 const sounds = new SoundManager();
 
-// Helper to draw image maintaining aspect ratio and centering/grounding correctly
+// 桜の花びらクラス
+class SakuraPetal {
+    constructor(width, height) {
+        this.reset(width, height, true);
+    }
+    reset(width, height, initial = false) {
+        this.x = Math.random() * width;
+        this.y = initial ? Math.random() * height : -20;
+        this.size = 6 + Math.random() * 8;
+        this.speedY = 0.5 + Math.random() * 1;
+        this.speedX = (Math.random() - 0.5) * 0.8;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.05;
+        this.alpha = 0.4 + Math.random() * 0.4;
+    }
+    update(width, height) {
+        this.y += this.speedY;
+        this.x += this.speedX + Math.sin(this.y * 0.02) * 0.3;
+        this.rotation += this.rotSpeed;
+        if (this.y > height + 20) this.reset(width, height);
+    }
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = COLORS.sakura;
+        ctx.beginPath();
+        ctx.moveTo(0, -this.size / 2);
+        ctx.bezierCurveTo(this.size / 2, -this.size / 4, this.size / 2, this.size / 4, 0, this.size / 2);
+        ctx.bezierCurveTo(-this.size / 2, this.size / 4, -this.size / 2, -this.size / 4, 0, -this.size / 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+// 紙吹雪クラス（リザルト用）- より派手に
+class Confetti {
+    constructor(width, height, fromBottom = true) {
+        this.x = Math.random() * width;
+        this.y = fromBottom ? height + 20 : -20;
+        this.size = 6 + Math.random() * 10;
+        this.speedY = fromBottom ? -8 - Math.random() * 8 : 2 + Math.random() * 3;
+        this.speedX = (Math.random() - 0.5) * 6;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.3;
+        this.color = [COLORS.kokin, COLORS.shu, COLORS.matsuba, COLORS.sora, COLORS.sakura][Math.floor(Math.random() * 5)];
+        this.life = 1;
+        this.shape = Math.random() > 0.5 ? 'rect' : 'circle';
+    }
+    update() {
+        this.y += this.speedY;
+        this.speedY += 0.2;
+        this.x += this.speedX;
+        this.speedX *= 0.99;
+        this.rotation += this.rotSpeed;
+        this.life -= 0.006;
+    }
+    draw(ctx) {
+        if (this.life <= 0) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        if (this.shape === 'rect') {
+            ctx.fillRect(-this.size / 2, -this.size / 4, this.size, this.size / 2);
+        } else {
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size / 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+
+// 桜パーティクル（PERFECT用）
+class SakuraParticle {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 12;
+        this.vy = (Math.random() - 0.5) * 12 - 4;
+        this.life = 1.0;
+        this.size = 5 + Math.random() * 8;
+        this.rotation = Math.random() * Math.PI * 2;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.25;
+        this.vx *= 0.98;
+        this.rotation += 0.15;
+        this.life -= 0.025;
+    }
+    draw(ctx) {
+        if (this.life <= 0) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = COLORS.sakura;
+        ctx.beginPath();
+        ctx.moveTo(0, -this.size / 2);
+        ctx.bezierCurveTo(this.size / 2, -this.size / 4, this.size / 2, this.size / 4, 0, this.size / 2);
+        ctx.bezierCurveTo(-this.size / 2, this.size / 4, -this.size / 2, -this.size / 4, 0, -this.size / 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+// ゴールドパーティクル（コンボ・スコア用）
+class GoldParticle {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 6;
+        this.vy = -2 - Math.random() * 4;
+        this.life = 1.0;
+        this.size = 3 + Math.random() * 4;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.1;
+        this.life -= 0.03;
+    }
+    draw(ctx) {
+        if (this.life <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = COLORS.kokin;
+        ctx.shadowColor = COLORS.kokin;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+// 画面エフェクト管理
+const screenEffects = {
+    flash: { active: false, color: '', alpha: 0 },
+    shake: { active: false, intensity: 0, duration: 0 }
+};
+
 function drawImageWithAspect(img, x, y, targetDim, useHeight = false, alignY = 'bottom') {
     if (!img.complete || img.width === 0) return;
     const aspect = img.width / img.height;
@@ -108,24 +358,6 @@ function drawImageWithAspect(img, x, y, targetDim, useHeight = false, alignY = '
     ctx.drawImage(img, x - w / 2, drawY, w, h);
 }
 
-// Particle
-class Particle {
-    constructor(x, y, color = '#fff') {
-        this.x = x; this.y = y;
-        this.vx = (Math.random() - 0.5) * 12; this.vy = (Math.random() - 0.5) * 12;
-        this.life = 1.0; this.size = 2 + Math.random() * 6;
-        this.color = color;
-    }
-    update() { this.x += this.vx; this.y += this.vy; this.vy += 0.3; this.life -= 0.04; }
-    draw() {
-        ctx.fillStyle = this.color.replace(')', `, ${this.life})`).replace('rgb', 'rgba');
-        if (this.color.startsWith('#')) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${this.life})`;
-        }
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
-    }
-}
-
 // 判定エフェクト（リング拡大）
 class HitEffect {
     constructor(x, y, color, judgment) {
@@ -134,31 +366,29 @@ class HitEffect {
         this.color = color;
         this.judgment = judgment;
         this.life = 1.0;
-        this.maxRadius = judgment === 'PERFECT' ? 60 : judgment === 'GREAT' ? 50 : 40;
+        this.maxRadius = judgment === 'PERFECT' ? 80 : judgment === 'GREAT' ? 60 : 45;
     }
     update() {
-        this.life -= 0.08;
+        this.life -= 0.06;
     }
     draw() {
         if (this.life <= 0) return;
         const progress = 1 - this.life;
         const radius = this.maxRadius * progress;
-        const alpha = this.life;
 
         ctx.save();
         ctx.strokeStyle = this.color;
-        ctx.lineWidth = 6 * this.life;
-        ctx.globalAlpha = alpha;
+        ctx.lineWidth = 10 * this.life;
+        ctx.globalAlpha = this.life;
         ctx.beginPath();
         ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
         ctx.stroke();
 
-        // 内側の光
         if (this.judgment === 'PERFECT') {
             ctx.fillStyle = this.color;
-            ctx.globalAlpha = alpha * 0.3;
+            ctx.globalAlpha = this.life * 0.5;
             ctx.beginPath();
-            ctx.arc(this.x, this.y, radius * 0.5, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, radius * 0.7, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.restore();
@@ -173,8 +403,12 @@ const laneState = {
 
 // エフェクト管理
 const hitEffects = [];
+const sakuraParticles = [];
+const goldParticles = [];
+let sakuraPetals = [];
+let confettis = [];
 
-// Vertical Note
+// Note クラス
 class Note {
     constructor(time, type) {
         this.time = time;
@@ -204,8 +438,7 @@ class Note {
         ctx.save();
         ctx.translate(x, y);
 
-        // Note Circle Background
-        ctx.fillStyle = this.type === 'usu' ? '#feca57' : '#ff4757';
+        ctx.fillStyle = this.type === 'usu' ? COLORS.kokin : COLORS.wasurenagusa;
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 4;
         ctx.beginPath();
@@ -213,7 +446,6 @@ class Note {
         ctx.fill();
         ctx.stroke();
 
-        // Emoji Icon
         const emoji = this.type === 'usu' ? '🔨' : '✋';
         ctx.font = `${noteSize * 0.5}px sans-serif`;
         ctx.textAlign = 'center';
@@ -227,79 +459,82 @@ class Note {
 // Global State
 let gameState = 'start', score = 0, combo = 0, maxCombo = 0, notes = [], startTime = 0, currentTime = 0, bgm = null;
 let stats = { perfect: 0, great: 0, ok: 0, miss: 0 };
+let currentDifficulty = 'normal';
 const dpr = window.devicePixelRatio || 1;
 
 const JUDGMENT = { PERFECT: 70, GREAT: 120, OK: 170, MISS: 240 };
 
-// 譜面データキャッシュ
 const chartCache = {};
 
 const mochi = {
     squishX: 1, squishY: 1, rotation: 0,
-    impactTimer: 0, impactType: null, particles: [],
+    impactTimer: 0, impactType: null,
     update() {
-        this.squishX += (1 - this.squishX) * 0.2; this.squishY += (1 - this.squishY) * 0.2; this.rotation *= 0.8;
+        this.squishX += (1 - this.squishX) * 0.15;
+        this.squishY += (1 - this.squishY) * 0.15;
+        this.rotation *= 0.85;
         if (this.impactTimer > 0) this.impactTimer--;
-        this.particles.forEach((p, i) => { p.update(); if (p.life <= 0) this.particles.splice(i, 1); });
     },
     trigger(type) {
-        this.impactType = type; this.impactTimer = 15;
-        const width = canvas.width / dpr, height = canvas.height / dpr;
-        const judgmentY = height * 0.7;
-        const groundY = judgmentY + 80;
+        this.impactType = type;
+        this.impactTimer = 18;
         if (type === 'usu') {
-            this.squishX = 1.4; this.squishY = 0.7;
-            for (let i = 0; i < 15; i++) this.particles.push(new Particle(width / 2, groundY - 60));
+            this.squishX = 1.5;
+            this.squishY = 0.6;
         } else {
-            this.rotation = Math.PI * 0.2; this.squishX = 0.9; this.squishY = 1.1;
+            this.rotation = Math.PI * 0.15;
+            this.squishX = 0.85;
+            this.squishY = 1.15;
         }
     },
-    draw(width, height, judgmentY) {
+    draw(width, height) {
         const centerX = width / 2;
-        // Base H for the right human
         const baseH = height * 0.4;
         const groundY = height * 0.92;
 
-        // Calculate actual widths from heights and aspect ratios to ensure precise overlap
         const kinePreH = baseH * 1.4;
         const kineW = kinePreH * (images.kinePre.width / images.kinePre.height || 1);
         const handW = baseH * (images.handHuman.width / images.handHuman.height || 1);
         const usuH = baseH * (2 / 3);
         const usuW = usuH * (images.usu.width / images.usu.height || 1);
 
-        // Calculate spacing for 1/3 image overlap: spacing = centerOfChar to centerOfUsu
-        // Overlap = (w_char/2 + w_usu/2) - spacing = w_char / 3
         const spacingK = (kineW / 6) + (usuW * 0.5);
         const spacingH = (handW / 6) + (usuW * 0.5);
 
         ctx.save();
 
-        // 1. Usu (Furthest Back)
         drawImageWithAspect(images.usu, centerX, groundY, usuH, true);
 
-        // 2. Left Human (Kine) - Overlaps Usu
         const isImpact = this.impactType === 'usu' && this.impactTimer > 0;
-        const kineH = isImpact ? kinePreH * 0.9 : kinePreH;
+        const kineH = isImpact ? kinePreH * 0.85 : kinePreH;
         const kineImg = isImpact ? images.kineAfter : images.kinePre;
         drawImageWithAspect(kineImg, centerX - spacingK, groundY, kineH, true);
 
-        // 3. Right Human (Hand) - Overlaps Usu
         ctx.save();
-        if (this.impactType === 'hand' && this.impactTimer > 0) ctx.translate(30, 0);
+        if (this.impactType === 'hand' && this.impactTimer > 0) {
+            ctx.translate(35, 0);
+        }
         drawImageWithAspect(images.handHuman, centerX + spacingH, groundY, baseH, true);
         ctx.restore();
 
         ctx.restore();
-        this.particles.forEach(p => p.draw());
     }
 };
 
 function resize() {
     const parent = canvas.parentElement;
-    const width = parent.clientWidth; const height = parent.clientHeight;
-    canvas.width = width * dpr; canvas.height = height * dpr;
-    canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
+    const width = parent.clientWidth;
+    const height = parent.clientHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
     ctx.scale(dpr, dpr);
+
+    sakuraPetals = [];
+    for (let i = 0; i < 25; i++) {
+        sakuraPetals.push(new SakuraPetal(width, height));
+    }
 }
 window.addEventListener('resize', resize);
 resize();
@@ -313,16 +548,26 @@ async function loadChart(tempo) {
 }
 
 async function startGame(tempo) {
-    gameState = 'playing'; score = 0; combo = 0; maxCombo = 0;
+    gameState = 'playing';
+    currentDifficulty = tempo;
+    score = 0;
+    combo = 0;
+    maxCombo = 0;
     stats = { perfect: 0, great: 0, ok: 0, miss: 0 };
+    confettis = [];
+    sakuraParticles.length = 0;
+    goldParticles.length = 0;
+    hitEffects.length = 0;
 
-    // JSON譜面を読み込み
     const chart = await loadChart(tempo);
     notes = chart.notes.map(n => new Note(n.time, n.type));
     console.log(`📜 譜面読み込み完了: ${tempo} (BPM: ${chart.meta.bpm}, ノート数: ${chart.meta.note_count})`);
 
-    startTime = performance.now(); updateUI();
-    startScreen.classList.add('hidden'); gameOverScreen.classList.add('hidden'); gameControls.classList.remove('hidden');
+    startTime = performance.now();
+    updateUI();
+    startScreen.classList.add('hidden');
+    gameOverScreen.classList.add('hidden');
+    gameControls.classList.remove('hidden');
     if (bgm) bgm.pause();
     bgm = new Audio('/mochi-rhythm/sounds/main.wav');
     bgm.play();
@@ -331,24 +576,67 @@ async function startGame(tempo) {
 
 function gameLoop(time) {
     if (gameState !== 'playing') return;
-    const width = canvas.width / dpr, height = canvas.height / dpr;
-    // Judgment happens slightly above the mortar mouth
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
     const judgmentY = height * 0.72;
 
     currentTime = time - startTime;
-    ctx.clearRect(0, 0, width, height);
+
+    ctx.save();
+    if (screenEffects.shake.active) {
+        const shakeX = (Math.random() - 0.5) * screenEffects.shake.intensity;
+        const shakeY = (Math.random() - 0.5) * screenEffects.shake.intensity;
+        ctx.translate(shakeX, shakeY);
+        screenEffects.shake.duration--;
+        if (screenEffects.shake.duration <= 0) {
+            screenEffects.shake.active = false;
+        }
+    }
+
+    ctx.clearRect(-10, -10, width + 20, height + 20);
+
+    sakuraPetals.forEach(petal => {
+        petal.update(width, height);
+        petal.draw(ctx);
+    });
 
     drawStack(width, height);
 
     mochi.update();
-    mochi.draw(width, height, judgmentY);
+    mochi.draw(width, height);
 
-    // レーンと判定円を臼より前面に描画
     drawBackground(width, height, judgmentY);
     drawJudgmentCircles(width, height, judgmentY);
 
     notes.forEach(n => n.update(currentTime));
     notes.forEach(n => n.draw(currentTime, width, height, judgmentY));
+
+    // パーティクル
+    for (let i = sakuraParticles.length - 1; i >= 0; i--) {
+        sakuraParticles[i].update();
+        sakuraParticles[i].draw(ctx);
+        if (sakuraParticles[i].life <= 0) sakuraParticles.splice(i, 1);
+    }
+
+    for (let i = goldParticles.length - 1; i >= 0; i--) {
+        goldParticles[i].update();
+        goldParticles[i].draw(ctx);
+        if (goldParticles[i].life <= 0) goldParticles.splice(i, 1);
+    }
+
+    // 画面フラッシュ
+    if (screenEffects.flash.active) {
+        ctx.fillStyle = screenEffects.flash.color;
+        ctx.globalAlpha = screenEffects.flash.alpha;
+        ctx.fillRect(0, 0, width, height);
+        ctx.globalAlpha = 1;
+        screenEffects.flash.alpha -= 0.06;
+        if (screenEffects.flash.alpha <= 0) {
+            screenEffects.flash.active = false;
+        }
+    }
+
+    ctx.restore();
 
     if (notes.length > 0 && currentTime > notes[notes.length - 1].time + 2000) endGame();
     else requestAnimationFrame(gameLoop);
@@ -357,21 +645,23 @@ function gameLoop(time) {
 function drawBackground(width, height, judgmentY) {
     const centerX = width / 2;
 
-    // Lanes
     ctx.fillStyle = 'rgba(0,0,0,0.03)';
     ctx.fillRect(centerX - 95, 0, 90, height);
     ctx.fillRect(centerX + 5, 0, 90, height);
 
-    // Lane lines
-    ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(centerX - 95, 0); ctx.lineTo(centerX - 95, height);
-    ctx.moveTo(centerX - 5, 0); ctx.lineTo(centerX - 5, height);
-    ctx.moveTo(centerX + 5, 0); ctx.lineTo(centerX + 5, height);
-    ctx.moveTo(centerX + 95, 0); ctx.lineTo(centerX + 95, height);
+    ctx.moveTo(centerX - 95, 0);
+    ctx.lineTo(centerX - 95, height);
+    ctx.moveTo(centerX - 5, 0);
+    ctx.lineTo(centerX - 5, height);
+    ctx.moveTo(centerX + 5, 0);
+    ctx.lineTo(centerX + 5, height);
+    ctx.moveTo(centerX + 95, 0);
+    ctx.lineTo(centerX + 95, height);
     ctx.stroke();
 
-    // 判定ライン（横線）
     ctx.strokeStyle = 'rgba(255,255,255,0.5)';
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -380,7 +670,6 @@ function drawBackground(width, height, judgmentY) {
     ctx.stroke();
 }
 
-// レーンごとの判定円を描画
 function drawJudgmentCircles(width, _height, judgmentY) {
     const centerX = width / 2;
     const laneOffset = 60;
@@ -388,35 +677,28 @@ function drawJudgmentCircles(width, _height, judgmentY) {
     const rightX = centerX + laneOffset;
     const circleRadius = 40;
 
-    // タイマー更新
     if (laneState.left.timer > 0) laneState.left.timer--;
     if (laneState.right.timer > 0) laneState.right.timer--;
 
-    // 左レーン（杵 - 黄色）
-    drawLaneCircle(leftX, judgmentY, circleRadius, '#feca57', laneState.left);
+    drawLaneCircle(leftX, judgmentY, circleRadius, COLORS.kokin, laneState.left);
+    drawLaneCircle(rightX, judgmentY, circleRadius, COLORS.wasurenagusa, laneState.right);
 
-    // 右レーン（手 - 赤）
-    drawLaneCircle(rightX, judgmentY, circleRadius, '#ff4757', laneState.right);
-
-    // ヒットエフェクト描画
-    hitEffects.forEach((e, i) => {
-        e.update();
-        e.draw();
-        if (e.life <= 0) hitEffects.splice(i, 1);
-    });
+    for (let i = hitEffects.length - 1; i >= 0; i--) {
+        hitEffects[i].update();
+        hitEffects[i].draw();
+        if (hitEffects[i].life <= 0) hitEffects.splice(i, 1);
+    }
 }
 
 function drawLaneCircle(x, y, radius, color, state) {
     ctx.save();
 
-    // 押下時のスケール
     const scale = state.timer > 0 ? 0.85 : 1;
-    const glowIntensity = state.timer > 0 ? 0.8 : 0.3;
+    const glowIntensity = state.timer > 0 ? 0.9 : 0.3;
 
     ctx.translate(x, y);
     ctx.scale(scale, scale);
 
-    // 外側のグロー
     const gradient = ctx.createRadialGradient(0, 0, radius * 0.5, 0, 0, radius * 1.5);
     gradient.addColorStop(0, color);
     gradient.addColorStop(0.5, color + '80');
@@ -427,7 +709,6 @@ function drawLaneCircle(x, y, radius, color, state) {
     ctx.arc(0, 0, radius * 1.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // メインの円（枠線）
     ctx.globalAlpha = 1;
     ctx.strokeStyle = color;
     ctx.lineWidth = state.timer > 0 ? 6 : 4;
@@ -435,21 +716,19 @@ function drawLaneCircle(x, y, radius, color, state) {
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
     ctx.stroke();
 
-    // 内側の薄い塗り
     ctx.fillStyle = color;
-    ctx.globalAlpha = state.timer > 0 ? 0.4 : 0.15;
+    ctx.globalAlpha = state.timer > 0 ? 0.5 : 0.15;
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // 判定テキスト（押した時）
     if (state.timer > 0 && state.judgment) {
         ctx.globalAlpha = state.timer / 15;
         ctx.fillStyle = {
-            'PERFECT': '#feca57',
-            'GREAT': '#badc58',
-            'OK': '#48dbfb',
-            'MISS': '#ff4757'
+            'PERFECT': COLORS.kokin,
+            'GREAT': COLORS.matsuba,
+            'OK': COLORS.sora,
+            'MISS': COLORS.beni
         }[state.judgment] || '#fff';
         ctx.font = 'bold 18px Outfit, sans-serif';
         ctx.textAlign = 'center';
@@ -462,7 +741,6 @@ function drawLaneCircle(x, y, radius, color, state) {
 
     ctx.restore();
 
-    // キーラベル（円の下に表示）
     ctx.save();
     ctx.fillStyle = color;
     ctx.strokeStyle = '#000';
@@ -470,7 +748,7 @@ function drawLaneCircle(x, y, radius, color, state) {
     ctx.font = '900 28px Outfit, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    const label = color === '#feca57' ? 'F' : 'J';
+    const label = color === COLORS.kokin ? 'F' : 'J';
     ctx.strokeText(label, x, y + radius + 10);
     ctx.fillText(label, x, y + radius + 10);
     ctx.restore();
@@ -479,16 +757,15 @@ function drawLaneCircle(x, y, radius, color, state) {
 function drawStack(width, height) {
     if (!images.pile.complete || score === 0) return;
 
-    const stacks = Math.floor(score / 10);  // 10個で1スタック
+    const stacks = Math.floor(score / 10);
     const startX = 40;
     const baseLine = height - 30;
     const pileSize = 50;
-    const verticalSpacing = 35;  // 縦の間隔
-    const horizontalSpacing = 55;  // 横の間隔（列）
+    const verticalSpacing = 35;
+    const horizontalSpacing = 55;
 
-    // スタック数だけ画像を表示（縦に積む）
     for (let i = 0; i < stacks; i++) {
-        const col = Math.floor(i / 8);  // 8個で次の列へ
+        const col = Math.floor(i / 8);
         const row = i % 8;
         const x = startX + col * horizontalSpacing;
         const y = baseLine - row * verticalSpacing;
@@ -506,7 +783,6 @@ function onInput(inputType) {
     const centerX = width / 2;
     const laneOffset = 60;
 
-    // どのレーンか
     const isLeft = inputType === 'kine';
     const laneX = isLeft ? centerX - laneOffset : centerX + laneOffset;
     const lane = isLeft ? laneState.left : laneState.right;
@@ -518,10 +794,8 @@ function onInput(inputType) {
         if (d < minD) { minD = d; closest = n; }
     });
 
-    // Visual feedback always triggers
     mochi.trigger(inputType === 'kine' ? 'usu' : 'hand');
 
-    // レーン状態を更新
     lane.pressed = true;
     lane.timer = 15;
 
@@ -535,55 +809,73 @@ function onInput(inputType) {
             else judgment = 'OK';
 
             lane.judgment = judgment;
-            applyJudgment(judgment, inputType);
+            applyJudgment(judgment, inputType, laneX, judgmentY);
 
-            // ヒットエフェクト追加
             const effectColor = {
-                'PERFECT': '#feca57',
-                'GREAT': '#badc58',
-                'OK': '#48dbfb'
+                'PERFECT': COLORS.kokin,
+                'GREAT': COLORS.matsuba,
+                'OK': COLORS.sora
             }[judgment];
             hitEffects.push(new HitEffect(laneX, judgmentY, effectColor, judgment));
 
-            // パーティクル追加（PERFECT時）
+            // PERFECT時は豪華なパーティクルエフェクト（画面フラッシュなし）
             if (judgment === 'PERFECT') {
+                for (let i = 0; i < 15; i++) {
+                    sakuraParticles.push(new SakuraParticle(laneX, judgmentY));
+                }
                 for (let i = 0; i < 8; i++) {
-                    mochi.particles.push(new Particle(laneX, judgmentY));
+                    goldParticles.push(new GoldParticle(laneX, judgmentY));
+                }
+            } else if (judgment === 'GREAT') {
+                // GREAT時も軽いエフェクト
+                for (let i = 0; i < 5; i++) {
+                    goldParticles.push(new GoldParticle(laneX, judgmentY));
                 }
             }
         } else {
-            // Wrong lane
             lane.judgment = 'MISS';
-            applyJudgment('MISS', inputType, true);
+            applyJudgment('MISS', inputType, laneX, judgmentY, true);
         }
     } else {
-        // Dry fire (Ska)
         lane.judgment = 'MISS';
-        applyJudgment('MISS', inputType, true);
+        applyJudgment('MISS', inputType, laneX, judgmentY, true);
     }
 }
 
-function applyJudgment(type, input, isSka = false) {
+function applyJudgment(type, input, laneX, judgmentY, isSka = false) {
     if (type === 'MISS') {
-        combo = 0; stats.miss++;
+        combo = 0;
+        stats.miss++;
         if (isSka) {
-            sounds.playSka(); // Distinct sound for missing notes entirely
+            sounds.playSka();
         } else {
-            sounds.playMiss(); // Sound for hitting but at wrong time/lane
+            sounds.playMiss();
+            screenEffects.shake.active = true;
+            screenEffects.shake.intensity = 12;
+            screenEffects.shake.duration = 8;
+            screenEffects.flash.active = true;
+            screenEffects.flash.color = COLORS.beni;
+            screenEffects.flash.alpha = 0.35;
         }
+    } else {
+        combo++;
+        if (combo > maxCombo) maxCombo = combo;
+        stats[type.toLowerCase()]++;
+        score++;
+        // 成功時はSEを鳴らさない（視覚エフェクトのみ）
     }
-    else {
-        combo++; if (combo > maxCombo) maxCombo = combo;
-        stats[type.toLowerCase()]++; score++;
-        if (type === 'PERFECT') sounds.playPerfect();
-        else input === 'kine' ? sounds.playHit() : sounds.playClap();
-    }
-    showJudgment(type); updateUI();
+    showJudgment(type);
+    updateUI();
 }
 
 function showJudgment(type) {
     judgmentText.textContent = type;
-    judgmentText.style.color = { 'PERFECT': '#feca57', 'GREAT': '#badc58', 'OK': '#48dbfb', 'MISS': '#ff4757' }[type];
+    judgmentText.style.color = {
+        'PERFECT': COLORS.kokin,
+        'GREAT': COLORS.matsuba,
+        'OK': COLORS.sora,
+        'MISS': COLORS.beni
+    }[type];
     judgmentText.style.webkitTextStroke = "2px #000";
     judgmentText.style.opacity = '1';
     const anim = judgmentText.animate([
@@ -592,45 +884,155 @@ function showJudgment(type) {
         { opacity: 0, transform: 'translate(-50%, -30px) scale(1.3)' }
     ], 250);
     anim.onfinish = () => { judgmentText.style.opacity = '0'; };
-    if (combo > 1) { comboContainer.classList.remove('hidden'); comboCountEl.animate([{ transform: 'scale(1.4)' }, { transform: 'scale(1)' }], 100); }
-    else comboContainer.classList.add('hidden');
+
+    if (combo > 1) {
+        comboContainer.classList.remove('hidden');
+        const pulseScale = Math.min(1.8, 1.2 + combo * 0.03);
+        comboCountEl.animate([
+            { transform: `scale(${pulseScale})`, color: COLORS.kokin },
+            { transform: 'scale(1)', color: '#000' }
+        ], 180);
+    } else {
+        comboContainer.classList.add('hidden');
+    }
 }
 
-function updateUI() { scoreEl.textContent = score; comboCountEl.textContent = combo; }
+function updateUI() {
+    scoreEl.textContent = score;
+    comboCountEl.textContent = combo;
+}
 
 function endGame() {
     gameState = 'gameOver';
     if (bgm) bgm.pause();
     gameControls.classList.add('hidden');
 
-    // 餅の個数 = スコア
-    finalMochiEl.textContent = score;
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
 
-    // ナイスタイミング = PERFECT + GREAT
-    const niceCount = stats.perfect + stats.great;
-    statNiceEl.textContent = niceCount;
+    // ドラムロール → ファンファーレ
+    sounds.playDrumroll(0.8);
+    setTimeout(() => {
+        sounds.playFanfare();
+    }, 900);
 
-    // 最大コンボ
-    statMaxComboEl.textContent = maxCombo;
+    // 紙吹雪を大量に発生
+    for (let i = 0; i < 80; i++) {
+        setTimeout(() => {
+            confettis.push(new Confetti(width, height, true));
+        }, i * 25);
+    }
 
-    // コメント生成
+    // 上からも降らせる
+    setTimeout(() => {
+        for (let i = 0; i < 40; i++) {
+            setTimeout(() => {
+                confettis.push(new Confetti(width, height, false));
+            }, i * 50);
+        }
+    }, 500);
+
+    // 紙吹雪アニメーション
+    function animateConfetti() {
+        if (gameState !== 'gameOver') return;
+        ctx.clearRect(0, 0, width, height);
+
+        sakuraPetals.forEach(petal => {
+            petal.update(width, height);
+            petal.draw(ctx);
+        });
+
+        for (let i = confettis.length - 1; i >= 0; i--) {
+            confettis[i].update();
+            confettis[i].draw(ctx);
+            if (confettis[i].life <= 0) confettis.splice(i, 1);
+        }
+
+        requestAnimationFrame(animateConfetti);
+    }
+    animateConfetti();
+
+    // リザルト表示を遅延させてドラマチックに
+    setTimeout(() => {
+        showResult();
+    }, 1000);
+}
+
+function showResult() {
     const totalNotes = stats.perfect + stats.great + stats.ok + stats.miss;
     const rate = totalNotes > 0 ? score / totalNotes : 0;
+
+    // 数字カウントアップアニメーション
+    animateCounter(finalMochiEl, score, 800);
+
+    const niceCount = stats.perfect + stats.great;
+    setTimeout(() => {
+        animateCounter(statNiceEl, niceCount, 500);
+    }, 300);
+
+    setTimeout(() => {
+        animateCounter(statMaxComboEl, maxCombo, 500);
+    }, 500);
+
+    // コメント生成
     let comment = '';
     if (rate >= 0.95) {
-        comment = '名人級の餅つき！お見事！';
-    } else if (rate >= 0.8) {
-        comment = 'いい感じにつけました！';
-    } else if (rate >= 0.6) {
+        comment = '🎊 名人級の餅つき！お見事！ 🎊';
+    } else if (rate >= 0.85) {
+        comment = '✨ 素晴らしい腕前！ ✨';
+    } else if (rate >= 0.7) {
+        comment = '👍 いい感じにつけました！';
+    } else if (rate >= 0.5) {
         comment = 'まずまずの出来栄え！';
-    } else if (rate >= 0.4) {
+    } else if (rate >= 0.3) {
         comment = 'もう少し練習しよう！';
     } else {
         comment = '餅つきは難しい...！';
     }
-    resultCommentEl.textContent = comment;
+
+    setTimeout(() => {
+        resultCommentEl.textContent = comment;
+        resultCommentEl.animate([
+            { opacity: 0, transform: 'scale(0.8)' },
+            { opacity: 1, transform: 'scale(1.1)' },
+            { opacity: 1, transform: 'scale(1)' }
+        ], 400);
+    }, 800);
 
     gameOverScreen.classList.remove('hidden');
+    gameOverScreen.animate([
+        { opacity: 0 },
+        { opacity: 1 }
+    ], 300);
+}
+
+function animateCounter(element, target, duration) {
+    const start = 0;
+    const startTime = performance.now();
+
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // イージング（最後がゆっくり）
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.floor(start + (target - start) * eased);
+
+        element.textContent = current;
+
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            element.textContent = target;
+            // 最後にポップエフェクト
+            element.animate([
+                { transform: 'scale(1.3)' },
+                { transform: 'scale(1)' }
+            ], 200);
+        }
+    }
+
+    requestAnimationFrame(update);
 }
 
 function retryGame() {
@@ -639,6 +1041,7 @@ function retryGame() {
     gameControls.classList.add('hidden');
     startScreen.classList.remove('hidden');
     gameOverScreen.classList.add('hidden');
+    confettis = [];
 }
 
 window.addEventListener('keydown', (e) => {
@@ -647,7 +1050,6 @@ window.addEventListener('keydown', (e) => {
     if (e.key === 'j' || e.key === 'J') { onInput('hand'); }
 });
 
-// Click detection on characters
 canvas.addEventListener('mousedown', (e) => {
     if (gameState !== 'playing') return;
     const rect = canvas.getBoundingClientRect();
@@ -661,25 +1063,20 @@ canvas.addEventListener('mousedown', (e) => {
     }
 });
 
-function animateBtn(id) {
-    const b = document.getElementById(id); if (!b) return;
-    b.style.transform = 'translateY(10px)'; b.style.boxShadow = '0 0 0 #000';
-    setTimeout(() => { b.style.transform = ''; b.style.boxShadow = ''; }, 100);
-}
-
 document.getElementById('btn-kine').addEventListener('mousedown', () => onInput('kine'));
 document.getElementById('btn-hand').addEventListener('mousedown', () => onInput('hand'));
 document.getElementById('btn-retry').addEventListener('click', () => retryGame());
 document.getElementById('start-easy').onclick = () => { sounds.ctx.resume(); startGame('easy'); };
 document.getElementById('start-normal').onclick = () => { sounds.ctx.resume(); startGame('normal'); };
 document.getElementById('start-hard').onclick = () => { sounds.ctx.resume(); startGame('hard'); };
-document.getElementById('restart-button').onclick = () => { startScreen.classList.remove('hidden'); gameOverScreen.classList.add('hidden'); };
+document.getElementById('restart-button').onclick = () => { startScreen.classList.remove('hidden'); gameOverScreen.classList.add('hidden'); confettis = []; };
 document.getElementById('share-button').onclick = () => {
     const niceCount = stats.perfect + stats.great;
-    const text = `餅つきゲーム「もちリズム」で${score}個の餅をつきました！
+    const difficultyName = { easy: 'ゆっくり', normal: 'ふつう', hard: 'はやい' }[currentDifficulty];
+    const text = `【もちリズム】${difficultyName}モードで${score}個の餅をつきました！
 
-ナイスタイミング: ${niceCount}回
-最大コンボ: ${maxCombo}
+🎯 ナイスタイミング: ${niceCount}回
+🔥 最大コンボ: ${maxCombo}
 
 #もちリズム`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(location.href)}`, '_blank');
