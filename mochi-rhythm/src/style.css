@@ -40,7 +40,7 @@ body {
     max-height: 675px;
     aspect-ratio: 16/9;
     background-color: #f1f2f6;
-    background-image: url('/mochi-rhythm/images/shrine_daylight.png');
+    background-image: url('/mochi-rhythm/images/shrine.png');
     background-size: cover;
     background-position: center;
     border: var(--border-width) solid #000;
@@ -239,18 +239,21 @@ h1 {
 #game-controls {
     position: absolute;
     bottom: 20px;
-    left: 0;
+    left: 50%;
+    transform: translateX(-50%);
     width: 100%;
+    max-width: 1100px;
     display: flex;
-    justify-content: center;
-    gap: 120px;
+    justify-content: space-between;
+    padding: 0 40px;
     pointer-events: auto;
     z-index: 50;
+    display: none;
 }
 
 .ctrl-btn {
-    width: 140px;
-    height: 140px;
+    width: 130px;
+    height: 130px;
     border-radius: 50%;
     border: 6px solid #000;
     font-size: 32px;

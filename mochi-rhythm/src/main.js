@@ -4,7 +4,7 @@ const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const comboCountEl = document.getElementById('combo-count');
 const comboContainer = document.getElementById('combo-container');
-const judgmentText = document.getElementById('judgment-text');
+const judgmentText = document.getElementById('top-judgment-text') || document.getElementById('judgment-text');
 const startScreen = document.getElementById('start-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
 const gameControls = document.getElementById('game-controls');
@@ -18,9 +18,12 @@ const statMissEl = document.getElementById('stat-miss');
 // Assets
 const images = {
     usu: new Image(),
-    kine: new Image(),
-    hand: new Image(),
     pile: new Image(),
+    kinePre: new Image(),
+    kineAfter: new Image(),
+    handHuman: new Image(),
+    kineNote: new Image(),
+    handNote: new Image(),
 };
 
 function processImage(img, callback) {
@@ -33,7 +36,7 @@ function processImage(img, callback) {
         const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
         const data = imageData.data;
         for (let i = 0; i < data.length; i += 4) {
-            if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) data[i + 3] = 0;
+            if (data[i] > 245 && data[i + 1] > 245 && data[i + 2] > 245) data[i + 3] = 0;
         }
         tempCtx.putImageData(imageData, 0, 0);
         const processedImg = new Image();
@@ -42,15 +45,21 @@ function processImage(img, callback) {
     };
 }
 
-const rawUsu = new Image(); rawUsu.src = '/mochi-rhythm/images/usu_white.png';
-const rawKine = new Image(); rawKine.src = '/mochi-rhythm/images/kine_white.png';
-const rawHand = new Image(); rawHand.src = '/mochi-rhythm/images/hand_white.png';
+const rawUsu = new Image(); rawUsu.src = '/mochi-rhythm/images/usu.png';
 const rawPile = new Image(); rawPile.src = '/mochi-rhythm/images/mochi_pile_white.png';
+const rawKinePre = new Image(); rawKinePre.src = '/mochi-rhythm/images/kine-human-pre.png';
+const rawKineAfter = new Image(); rawKineAfter.src = '/mochi-rhythm/images/kine-human-after.png';
+const rawHandHuman = new Image(); rawHandHuman.src = '/mochi-rhythm/images/hand-human.png';
+const rawKineNote = new Image(); rawKineNote.src = '/mochi-rhythm/images/kine_white.png';
+const rawHandNote = new Image(); rawHandNote.src = '/mochi-rhythm/images/hand_white.png';
 
 processImage(rawUsu, (img) => images.usu = img);
-processImage(rawKine, (img) => images.kine = img);
-processImage(rawHand, (img) => images.hand = img);
 processImage(rawPile, (img) => images.pile = img);
+processImage(rawKinePre, (img) => images.kinePre = img);
+processImage(rawKineAfter, (img) => images.kineAfter = img);
+processImage(rawHandHuman, (img) => images.handHuman = img);
+processImage(rawKineNote, (img) => images.kineNote = img);
+processImage(rawHandNote, (img) => images.handNote = img);
 
 class SoundManager {
     constructor() {
@@ -102,6 +111,22 @@ class SoundManager {
 
 const sounds = new SoundManager();
 
+// Helper to draw image maintaining aspect ratio and centering/grounding correctly
+function drawImageWithAspect(img, x, y, targetDim, useHeight = false, alignY = 'bottom') {
+    if (!img.complete || img.width === 0) return;
+    const aspect = img.width / img.height;
+    let w, h;
+    if (useHeight) {
+        h = targetDim;
+        w = h * aspect;
+    } else {
+        w = targetDim;
+        h = w / aspect;
+    }
+    const drawY = alignY === 'bottom' ? y - h : y - h / 2;
+    ctx.drawImage(img, x - w / 2, drawY, w, h);
+}
+
 // Particle
 class Particle {
     constructor(x, y) {
@@ -133,7 +158,7 @@ class Note {
     draw(currentTime, width, height, judgmentY) {
         if (this.hit || this.missed) return;
         const timeDiff = this.time - currentTime;
-        const speed = (height * 0.7) / 1000;
+        const speed = (height * 0.8) / 1000;
 
         if (timeDiff > 1200 || timeDiff < -JUDGMENT.MISS) return;
 
@@ -156,7 +181,7 @@ class Note {
         ctx.stroke();
 
         // Icon
-        const img = this.type === 'usu' ? images.kine : images.hand;
+        const img = this.type === 'usu' ? images.kineNote : images.handNote;
         const iconSize = noteSize * 0.75;
         if (img.complete) ctx.drawImage(img, -iconSize / 2, -iconSize / 2, iconSize, iconSize);
 
@@ -182,12 +207,69 @@ const mochi = {
     },
     trigger(type) {
         this.impactType = type; this.impactTimer = 15;
+        const width = canvas.width / dpr, height = canvas.height / dpr;
+        const judgmentY = height * 0.7;
+        const groundY = judgmentY + 80;
         if (type === 'usu') {
             this.squishX = 1.4; this.squishY = 0.7;
-            for (let i = 0; i < 15; i++) this.particles.push(new Particle(canvas.width / dpr / 2, canvas.height / dpr * 0.60));
+            for (let i = 0; i < 15; i++) this.particles.push(new Particle(width / 2, groundY - 60));
         } else {
             this.rotation = Math.PI * 0.2; this.squishX = 0.9; this.squishY = 1.1;
         }
+    },
+    draw(width, height, judgmentY) {
+        const centerX = width / 2;
+        // Base H for the right human
+        const baseH = height * 0.4;
+        const groundY = height * 0.92;
+
+        // Calculate actual widths from heights and aspect ratios to ensure precise overlap
+        const kinePreH = baseH * 1.4;
+        const kineW = kinePreH * (images.kinePre.width / images.kinePre.height || 1);
+        const handW = baseH * (images.handHuman.width / images.handHuman.height || 1);
+        const usuH = baseH * (2 / 3);
+        const usuW = usuH * (images.usu.width / images.usu.height || 1);
+
+        // Calculate spacing for 1/3 image overlap: spacing = centerOfChar to centerOfUsu
+        // Overlap = (w_char/2 + w_usu/2) - spacing = w_char / 3
+        const spacingK = (kineW / 6) + (usuW * 0.5);
+        const spacingH = (handW / 6) + (usuW * 0.5);
+
+        ctx.save();
+
+        // 1. Usu (Furthest Back)
+        drawImageWithAspect(images.usu, centerX, groundY, usuH, true);
+
+        // 2. Mochi (Inside Usu)
+        const mochiY = groundY - (usuH * 0.65);
+        const mochiSize = usuH * 0.38;
+        ctx.save();
+        ctx.translate(centerX, mochiY);
+        ctx.rotate(this.rotation); ctx.scale(this.squishX, this.squishY);
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, mochiSize, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.restore();
+
+        // 3. Left Human (Kine) - Overlaps Usu
+        const isImpact = this.impactType === 'usu' && this.impactTimer > 0;
+        const kineH = isImpact ? kinePreH * 0.9 : kinePreH;
+        const kineImg = isImpact ? images.kineAfter : images.kinePre;
+        drawImageWithAspect(kineImg, centerX - spacingK, groundY, kineH, true);
+
+        // 4. Right Human (Hand) - Overlaps Usu
+        ctx.save();
+        if (this.impactType === 'hand' && this.impactTimer > 0) ctx.translate(30, 0);
+        drawImageWithAspect(images.handHuman, centerX + spacingH, groundY, baseH, true);
+        ctx.restore();
+
+        // 5. Input Labels (Top layer)
+        ctx.fillStyle = '#feca57'; ctx.strokeStyle = '#000'; ctx.lineWidth = 8; ctx.font = '900 80px Outfit, sans-serif';
+        ctx.textAlign = 'center'; ctx.strokeText('F', centerX - spacingK, groundY + 60); ctx.fillText('F', centerX - spacingK, groundY + 60);
+
+        ctx.fillStyle = '#ff4757'; ctx.strokeStyle = '#000'; ctx.lineWidth = 8; ctx.font = '900 80px Outfit, sans-serif';
+        ctx.textAlign = 'center'; ctx.strokeText('J', centerX + spacingH, groundY + 60); ctx.fillText('J', centerX + spacingH, groundY + 60);
+
+        ctx.restore();
+        this.particles.forEach(p => p.draw());
     }
 };
 
@@ -229,7 +311,8 @@ function generateChart(bpm, durationMs) {
 function gameLoop(time) {
     if (gameState !== 'playing') return;
     const width = canvas.width / dpr, height = canvas.height / dpr;
-    const judgmentY = height * 0.60;
+    // Judgment happens slightly above the mortar mouth
+    const judgmentY = height * 0.72;
 
     currentTime = time - startTime;
     ctx.clearRect(0, 0, width, height);
@@ -237,7 +320,7 @@ function gameLoop(time) {
     drawBackground(width, height, judgmentY);
     drawStack(width, height);
     mochi.update();
-    mochi.draw(width, judgmentY);
+    mochi.draw(width, height, judgmentY);
 
     notes.forEach(n => n.update(currentTime));
     notes.forEach(n => n.draw(currentTime, width, height, judgmentY));
@@ -248,54 +331,45 @@ function gameLoop(time) {
 
 function drawBackground(width, height, judgmentY) {
     const centerX = width / 2;
-    // Lanes - Very subtle to let the background path show through
+    // Lanes
     ctx.fillStyle = 'rgba(0,0,0,0.03)';
     ctx.fillRect(centerX - 95, 0, 90, height);
     ctx.fillRect(centerX + 5, 0, 90, height);
 
-    // Lane lines - Thin and subtle
-    ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 1;
+    // Lane lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(centerX - 95, 0); ctx.lineTo(centerX - 95, height);
     ctx.moveTo(centerX - 5, 0); ctx.lineTo(centerX - 5, height);
     ctx.moveTo(centerX + 5, 0); ctx.lineTo(centerX + 5, height);
     ctx.moveTo(centerX + 95, 0); ctx.lineTo(centerX + 95, height);
     ctx.stroke();
-
-    // Judgment Line (Dashed)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.setLineDash([10, 10]);
-    ctx.beginPath();
-    ctx.moveTo(centerX - 100, judgmentY);
-    ctx.lineTo(centerX + 100, judgmentY);
-    ctx.stroke();
-    ctx.setLineDash([]);
 }
 
 function drawStack(width, height) {
     const piles = Math.floor(score / 10);
     const individuals = score % 10;
     const startX = 70;
-    const baseLine = height - 120;
+    const baseLine = height - 160; // Up from bottom to avoid clutter
 
     // Draw 10-mochi piles
     const pileSize = 90;
     for (let i = 0; i < piles; i++) {
-        const col = Math.floor(i / 6);
-        const row = i % 6;
+        const col = Math.floor(i / 10);
+        const row = i % 10;
         const x = startX + col * 95;
-        const y = baseLine - row * 75;
+        const y = baseLine - row * 30;
 
         if (images.pile.complete) {
             ctx.drawImage(images.pile, x - pileSize / 2, y - pileSize / 2, pileSize, pileSize);
         }
     }
 
-    // Draw current accumulating mochi
+    // Draw current Accumulating
     const mWidth = 46, mHeight = 22;
-    const nextCol = Math.floor(piles / 6);
+    const nextCol = Math.floor(piles / 10);
     const nextX = startX + nextCol * 95;
-    const nextYBase = baseLine - (piles % 6) * 75 + 25;
+    const nextYBase = baseLine - (piles % 10) * 30 + 20;
 
     for (let j = 0; j < individuals; j++) {
         const y = nextYBase - j * 7;
@@ -308,33 +382,6 @@ function drawStack(width, height) {
         ctx.restore();
     }
 }
-
-mochi.draw = function (width, judgmentY) {
-    const centerX = width / 2;
-    const outerR = canvas.height / dpr * 0.12, innerR = outerR * 0.6;
-    ctx.save(); ctx.translate(centerX, judgmentY);
-    // Usu
-    ctx.fillStyle = '#5d4037'; ctx.strokeStyle = '#000'; ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.arc(0, 0, outerR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    // Mochi
-    ctx.rotate(this.rotation); ctx.scale(this.squishX, this.squishY);
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, innerR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.restore();
-    // Impact
-    if (this.impactTimer > 0) {
-        ctx.save(); ctx.translate(centerX, judgmentY);
-        const img = this.impactType === 'usu' ? images.kine : images.hand;
-        const size = outerR * 2.4;
-        if (this.impactType === 'usu') {
-            ctx.rotate(-Math.PI * 0.25 * (this.impactTimer / 15));
-            if (images.kine.complete) ctx.drawImage(img, -size / 2, -size / 1.1, size, size);
-        } else {
-            if (images.hand.complete) ctx.drawImage(img, -size / 2, -size / 2, size, size);
-        }
-        ctx.restore();
-    }
-    this.particles.forEach(p => p.draw());
-};
 
 function onInput(inputType) {
     if (gameState !== 'playing') return;
@@ -388,8 +435,22 @@ function endGame() {
 
 window.addEventListener('keydown', (e) => {
     if (e.repeat || gameState !== 'playing') return;
-    if (e.key === 'f' || e.key === 'F') { onInput('kine'); animateBtn('btn-kine'); }
-    if (e.key === 'j' || e.key === 'J') { onInput('hand'); animateBtn('btn-hand'); }
+    if (e.key === 'f' || e.key === 'F') { onInput('kine'); }
+    if (e.key === 'j' || e.key === 'J') { onInput('hand'); }
+});
+
+// Click detection on characters
+canvas.addEventListener('mousedown', (e) => {
+    if (gameState !== 'playing') return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width) / dpr;
+    const width = canvas.width / dpr;
+
+    if (x < width / 2) {
+        onInput('kine');
+    } else {
+        onInput('hand');
+    }
 });
 
 function animateBtn(id) {
