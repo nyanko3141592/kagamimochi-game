@@ -8,12 +8,10 @@ const judgmentText = document.getElementById('top-judgment-text') || document.ge
 const startScreen = document.getElementById('start-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
 const gameControls = document.getElementById('game-controls');
-const finalScoreEl = document.getElementById('final-score');
-
-const statPerfectEl = document.getElementById('stat-perfect');
-const statGreatEl = document.getElementById('stat-great');
-const statOkEl = document.getElementById('stat-ok');
-const statMissEl = document.getElementById('stat-miss');
+const finalMochiEl = document.getElementById('final-mochi');
+const statNiceEl = document.getElementById('stat-nice');
+const statMaxComboEl = document.getElementById('stat-max-combo');
+const resultCommentEl = document.getElementById('result-comment');
 
 // Assets
 const images = {
@@ -599,14 +597,37 @@ function showJudgment(type) {
 function updateUI() { scoreEl.textContent = score; comboCountEl.textContent = combo; }
 
 function endGame() {
-    gameState = 'gameOver'; if (bgm) bgm.pause();
+    gameState = 'gameOver';
+    if (bgm) bgm.pause();
     gameControls.classList.add('hidden');
-    finalScoreEl.textContent = score;
-    statPerfectEl.textContent = stats.perfect;
-    statGreatEl.textContent = stats.great;
-    statOkEl.textContent = stats.ok;
-    statMissEl.textContent = stats.miss;
-    document.getElementById('stat-max-combo').textContent = maxCombo;
+
+    // 餅の個数 = スコア
+    finalMochiEl.textContent = score;
+
+    // ナイスタイミング = PERFECT + GREAT
+    const niceCount = stats.perfect + stats.great;
+    statNiceEl.textContent = niceCount;
+
+    // 最大コンボ
+    statMaxComboEl.textContent = maxCombo;
+
+    // コメント生成
+    const totalNotes = stats.perfect + stats.great + stats.ok + stats.miss;
+    const rate = totalNotes > 0 ? score / totalNotes : 0;
+    let comment = '';
+    if (rate >= 0.95) {
+        comment = '名人級の餅つき！お見事！';
+    } else if (rate >= 0.8) {
+        comment = 'いい感じにつけました！';
+    } else if (rate >= 0.6) {
+        comment = 'まずまずの出来栄え！';
+    } else if (rate >= 0.4) {
+        comment = 'もう少し練習しよう！';
+    } else {
+        comment = '餅つきは難しい...！';
+    }
+    resultCommentEl.textContent = comment;
+
     gameOverScreen.classList.remove('hidden');
 }
 
@@ -652,6 +673,12 @@ document.getElementById('start-normal').onclick = () => { sounds.ctx.resume(); s
 document.getElementById('start-hard').onclick = () => { sounds.ctx.resume(); startGame('hard'); };
 document.getElementById('restart-button').onclick = () => { startScreen.classList.remove('hidden'); gameOverScreen.classList.add('hidden'); };
 document.getElementById('share-button').onclick = () => {
-    const text = `もちリズムで ${score} 個の餅をつき上げた！ #もちリズム`;
+    const niceCount = stats.perfect + stats.great;
+    const text = `餅つきゲーム「もちリズム」で${score}個の餅をつきました！
+
+ナイスタイミング: ${niceCount}回
+最大コンボ: ${maxCombo}
+
+#もちリズム`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(location.href)}`, '_blank');
 };

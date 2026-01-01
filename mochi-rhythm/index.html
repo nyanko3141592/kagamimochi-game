@@ -33,7 +33,7 @@
 
             <div id="ui-overlay">
                 <div id="score-container">
-                    <div class="label">SCORE</div>
+                    <div class="label">もち</div>
                     <div id="score">0</div>
                 </div>
                 <div id="combo-container" class="hidden">
@@ -47,22 +47,19 @@
                 <h1>もちリズム</h1>
                 <div class="subtitle">Mochi Rhythm</div>
                 <div class="instructions">
-                    <p><span class="highlight">臼（うす）</span>がきたら <span class="kine-key">杵 (F)</span></p>
-                    <p><span class="warning">手</span> がきたら <span class="hand-key">手 (J)</span></p>
-                    <p class="controls">キーボード または 下のボタンで操作</p>
+                    <p class="inst-line"><span class="inst-icon">🔨</span>杵がきたら餅をつく！</p>
+                    <p class="inst-line"><span class="inst-icon">✋</span>手がきたら餅を返す！</p>
+                    <p class="inst-keys">FとJで餅をつこう！</p>
                 </div>
                 <div class="mode-select">
                     <button class="mode-button" id="start-easy">
-                        <span class="mode-name">EASY</span>
-                        <span class="mode-desc">かんたん</span>
+                        <span class="mode-name">ゆっくり</span>
                     </button>
                     <button class="mode-button" id="start-normal">
-                        <span class="mode-name">NORMAL</span>
-                        <span class="mode-desc">ふつう</span>
+                        <span class="mode-name">ふつう</span>
                     </button>
                     <button class="mode-button" id="start-hard">
-                        <span class="mode-name">HARD</span>
-                        <span class="mode-desc">むずかしい</span>
+                        <span class="mode-name">はやい</span>
                     </button>
                 </div>
             </div>
@@ -75,35 +72,24 @@
 
             <div id="game-over-screen" class="overlay hidden">
                 <div class="result-panel">
-                    <h2>終了！</h2>
-                    <div id="final-score-container">
-                        <div class="label">FINAL SCORE</div>
-                        <div id="final-score">0</div>
+                    <div class="result-title">餅つき完了！</div>
+                    <div class="mochi-result">
+                        <div class="mochi-count-label">つきあげた餅</div>
+                        <div class="mochi-count"><span id="final-mochi">0</span><span class="mochi-unit">個</span></div>
                     </div>
-                    <div class="stats-grid">
-                        <div class="stat-box stat-perfect">
-                            <div class="stat-label">PERFECT</div>
-                            <div id="stat-perfect" class="stat-value">0</div>
+                    <div class="result-details">
+                        <div class="detail-row">
+                            <span class="detail-label">ナイスタイミング</span>
+                            <span id="stat-nice" class="detail-value">0</span>
                         </div>
-                        <div class="stat-box stat-great">
-                            <div class="stat-label">GREAT</div>
-                            <div id="stat-great" class="stat-value">0</div>
-                        </div>
-                        <div class="stat-box stat-ok">
-                            <div class="stat-label">OK</div>
-                            <div id="stat-ok" class="stat-value">0</div>
-                        </div>
-                        <div class="stat-box stat-miss">
-                            <div class="stat-label">MISS</div>
-                            <div id="stat-miss" class="stat-value">0</div>
+                        <div class="detail-row">
+                            <span class="detail-label">連続コンボ</span>
+                            <span id="stat-max-combo" class="detail-value">0</span>
                         </div>
                     </div>
-                    <div class="max-combo-box">
-                        <div class="stat-label">MAX COMBO</div>
-                        <div id="stat-max-combo" class="stat-value">0</div>
-                    </div>
+                    <div id="result-comment" class="result-comment"></div>
                     <div class="result-actions">
-                        <button id="restart-button">もう一度</button>
+                        <button id="restart-button">もう一度つく</button>
                         <button id="share-button">結果を共有</button>
                     </div>
                 </div>
