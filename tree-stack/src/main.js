@@ -497,6 +497,18 @@ function setupEvents() {
         share();
     };
 
+    const gameOverScreen = document.getElementById('game-over-screen');
+    document.getElementById('photo-mode-button').onclick = (e) => {
+        e.stopPropagation();
+        gameOverScreen.classList.add('photo-mode-active');
+    };
+
+    gameOverScreen.onclick = () => {
+        if (gameOverScreen.classList.contains('photo-mode-active')) {
+            gameOverScreen.classList.remove('photo-mode-active');
+        }
+    };
+
     // タップで落下
     const onTap = (e) => {
         if (game.state !== 'playing') return;
@@ -515,7 +527,9 @@ function setupEvents() {
 
 function startGame() {
     document.getElementById('start-screen').classList.add('hidden');
-    document.getElementById('game-over-screen').classList.add('hidden');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    gameOverScreen.classList.add('hidden');
+    gameOverScreen.classList.remove('photo-mode-active');
 
     game.score = 0;
     game.state = 'playing';
