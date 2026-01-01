@@ -779,9 +779,6 @@ function onLanded(mochi) {
         document.getElementById('score').textContent = game.score;
         game.stackedMochis.push(mochi);
 
-        // 背景更新はupdate()で行うのでここは削除
-        // updateBackground();
-
         game.mochiState = 'none';
         game.currentMochi = null;
 
@@ -1009,27 +1006,33 @@ function zoomOutToShowAll() {
 }
 
 function createStar(x, y, scale = 1) {
-    const outerRadius = 50 * scale;
-    const innerRadius = 22 * scale;
-    const points = 5;
-    const starVertices = [];
-    for (let i = 0; i < points * 2; i++) {
-        const angle = (i * Math.PI) / points - (Math.PI / 2);
-        const r = i % 2 === 0 ? outerRadius : innerRadius;
-        starVertices.push({ x: r * Math.cos(angle), y: r * Math.sin(angle) });
-    }
+    const starSvg = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <defs>
+        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#FFF7AD;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#DAA520;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    <path fill="url(#goldGrad)" stroke="#B8860B" stroke-width="2" 
+        d="M50 5 L63 38 L98 38 L70 59 L81 95 L50 73 L19 95 L30 59 L2 38 L37 38 Z" />
+</svg>`;
 
-    // Matter.js needs a decomposition for concave shapes to collide correctly.
-    // If poly-decomp is not available, we can create a compound body.
-    // But since it's just a visual end-cap, let's use a simpler star-like collision or compound.
-    const starBody = Bodies.fromVertices(x, y, [starVertices], {
+    const starDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(starSvg)}`;
+
+    const visualSize = 50 * scale;
+
+    const starBody = Bodies.circle(x, y, visualSize * 0.4, {
         label: 'star',
         friction: 1.0,
-        restitution: 0.5,
+        restitution: 0.3,
         render: {
-            fillStyle: '#FFD700',
-            strokeStyle: '#DAA520',
-            lineWidth: 3
+            sprite: {
+                texture: starDataUrl,
+                xScale: visualSize / 100,
+                yScale: visualSize / 100
+            }
         }
     });
 
