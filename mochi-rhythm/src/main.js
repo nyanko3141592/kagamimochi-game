@@ -26,40 +26,13 @@ const images = {
     handNote: new Image(),
 };
 
-function processImage(img, callback) {
-    img.onload = () => {
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
-        tempCtx.drawImage(img, 0, 0);
-        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-            if (data[i] > 245 && data[i + 1] > 245 && data[i + 2] > 245) data[i + 3] = 0;
-        }
-        tempCtx.putImageData(imageData, 0, 0);
-        const processedImg = new Image();
-        processedImg.src = tempCanvas.toDataURL();
-        callback(processedImg);
-    };
-}
-
-const rawUsu = new Image(); rawUsu.src = '/mochi-rhythm/images/usu.png';
-const rawPile = new Image(); rawPile.src = '/mochi-rhythm/images/mochi_pile_white.png';
-const rawKinePre = new Image(); rawKinePre.src = '/mochi-rhythm/images/kine-human-pre.png';
-const rawKineAfter = new Image(); rawKineAfter.src = '/mochi-rhythm/images/kine-human-after.png';
-const rawHandHuman = new Image(); rawHandHuman.src = '/mochi-rhythm/images/hand-human.png';
-const rawKineNote = new Image(); rawKineNote.src = '/mochi-rhythm/images/kine_white.png';
-const rawHandNote = new Image(); rawHandNote.src = '/mochi-rhythm/images/hand_white.png';
-
-processImage(rawUsu, (img) => images.usu = img);
-processImage(rawPile, (img) => images.pile = img);
-processImage(rawKinePre, (img) => images.kinePre = img);
-processImage(rawKineAfter, (img) => images.kineAfter = img);
-processImage(rawHandHuman, (img) => images.handHuman = img);
-processImage(rawKineNote, (img) => images.kineNote = img);
-processImage(rawHandNote, (img) => images.handNote = img);
+images.usu = new Image(); images.usu.src = '/mochi-rhythm/images/usu.png';
+images.pile = new Image(); images.pile.src = '/mochi-rhythm/images/mochi_pile_white.png';
+images.kinePre = new Image(); images.kinePre.src = '/mochi-rhythm/images/kine-human-pre.png';
+images.kineAfter = new Image(); images.kineAfter.src = '/mochi-rhythm/images/kine-human-after.png';
+images.handHuman = new Image(); images.handHuman.src = '/mochi-rhythm/images/hand-human.png';
+images.kineNote = new Image(); images.kineNote.src = '/mochi-rhythm/images/kine_white.png';
+images.handNote = new Image(); images.handNote.src = '/mochi-rhythm/images/hand_white.png';
 
 class SoundManager {
     constructor() {
@@ -139,17 +112,69 @@ function drawImageWithAspect(img, x, y, targetDim, useHeight = false, alignY = '
 
 // Particle
 class Particle {
-    constructor(x, y) {
+    constructor(x, y, color = '#fff') {
         this.x = x; this.y = y;
         this.vx = (Math.random() - 0.5) * 12; this.vy = (Math.random() - 0.5) * 12;
         this.life = 1.0; this.size = 2 + Math.random() * 6;
+        this.color = color;
     }
     update() { this.x += this.vx; this.y += this.vy; this.vy += 0.3; this.life -= 0.04; }
     draw() {
-        ctx.fillStyle = `rgba(255, 255, 255, ${this.life})`;
+        ctx.fillStyle = this.color.replace(')', `, ${this.life})`).replace('rgb', 'rgba');
+        if (this.color.startsWith('#')) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${this.life})`;
+        }
         ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
     }
 }
+
+// 判定エフェクト（リング拡大）
+class HitEffect {
+    constructor(x, y, color, judgment) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.judgment = judgment;
+        this.life = 1.0;
+        this.maxRadius = judgment === 'PERFECT' ? 60 : judgment === 'GREAT' ? 50 : 40;
+    }
+    update() {
+        this.life -= 0.08;
+    }
+    draw() {
+        if (this.life <= 0) return;
+        const progress = 1 - this.life;
+        const radius = this.maxRadius * progress;
+        const alpha = this.life;
+
+        ctx.save();
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 6 * this.life;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 内側の光
+        if (this.judgment === 'PERFECT') {
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = alpha * 0.3;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, radius * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+
+// レーン判定円の状態
+const laneState = {
+    left: { pressed: false, timer: 0, judgment: null },
+    right: { pressed: false, timer: 0, judgment: null }
+};
+
+// エフェクト管理
+const hitEffects = [];
 
 // Vertical Note
 class Note {
@@ -252,33 +277,17 @@ const mochi = {
         // 1. Usu (Furthest Back)
         drawImageWithAspect(images.usu, centerX, groundY, usuH, true);
 
-        // 2. Mochi (Inside Usu)
-        const mochiY = groundY - (usuH * 0.65);
-        const mochiSize = usuH * 0.38;
-        ctx.save();
-        ctx.translate(centerX, mochiY);
-        ctx.rotate(this.rotation); ctx.scale(this.squishX, this.squishY);
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, mochiSize, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.restore();
-
-        // 3. Left Human (Kine) - Overlaps Usu
+        // 2. Left Human (Kine) - Overlaps Usu
         const isImpact = this.impactType === 'usu' && this.impactTimer > 0;
         const kineH = isImpact ? kinePreH * 0.9 : kinePreH;
         const kineImg = isImpact ? images.kineAfter : images.kinePre;
         drawImageWithAspect(kineImg, centerX - spacingK, groundY, kineH, true);
 
-        // 4. Right Human (Hand) - Overlaps Usu
+        // 3. Right Human (Hand) - Overlaps Usu
         ctx.save();
         if (this.impactType === 'hand' && this.impactTimer > 0) ctx.translate(30, 0);
         drawImageWithAspect(images.handHuman, centerX + spacingH, groundY, baseH, true);
         ctx.restore();
-
-        // 5. Input Labels (Top layer)
-        ctx.fillStyle = '#feca57'; ctx.strokeStyle = '#000'; ctx.lineWidth = 8; ctx.font = '900 80px Outfit, sans-serif';
-        ctx.textAlign = 'center'; ctx.strokeText('F', centerX - spacingK, groundY + 60); ctx.fillText('F', centerX - spacingK, groundY + 60);
-
-        ctx.fillStyle = '#ff4757'; ctx.strokeStyle = '#000'; ctx.lineWidth = 8; ctx.font = '900 80px Outfit, sans-serif';
-        ctx.textAlign = 'center'; ctx.strokeText('J', centerX + spacingH, groundY + 60); ctx.fillText('J', centerX + spacingH, groundY + 60);
 
         ctx.restore();
         this.particles.forEach(p => p.draw());
@@ -315,7 +324,7 @@ async function startGame(tempo) {
     startTime = performance.now(); updateUI();
     startScreen.classList.add('hidden'); gameOverScreen.classList.add('hidden'); gameControls.classList.remove('hidden');
     if (bgm) bgm.pause();
-    bgm = new Audio(tempo === 'middle' ? '/mochi-rhythm/sounds/middle.mp3' : '/mochi-rhythm/sounds/high.mp3');
+    bgm = new Audio('/mochi-rhythm/sounds/main.wav');
     bgm.play();
     requestAnimationFrame(gameLoop);
 }
@@ -329,10 +338,14 @@ function gameLoop(time) {
     currentTime = time - startTime;
     ctx.clearRect(0, 0, width, height);
 
-    drawBackground(width, height, judgmentY);
     drawStack(width, height);
+
     mochi.update();
     mochi.draw(width, height, judgmentY);
+
+    // レーンと判定円を臼より前面に描画
+    drawBackground(width, height, judgmentY);
+    drawJudgmentCircles(width, height, judgmentY);
 
     notes.forEach(n => n.update(currentTime));
     notes.forEach(n => n.draw(currentTime, width, height, judgmentY));
@@ -343,6 +356,7 @@ function gameLoop(time) {
 
 function drawBackground(width, height, judgmentY) {
     const centerX = width / 2;
+
     // Lanes
     ctx.fillStyle = 'rgba(0,0,0,0.03)';
     ctx.fillRect(centerX - 95, 0, 90, height);
@@ -356,47 +370,147 @@ function drawBackground(width, height, judgmentY) {
     ctx.moveTo(centerX + 5, 0); ctx.lineTo(centerX + 5, height);
     ctx.moveTo(centerX + 95, 0); ctx.lineTo(centerX + 95, height);
     ctx.stroke();
+
+    // 判定ライン（横線）
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 100, judgmentY);
+    ctx.lineTo(centerX + 100, judgmentY);
+    ctx.stroke();
+}
+
+// レーンごとの判定円を描画
+function drawJudgmentCircles(width, _height, judgmentY) {
+    const centerX = width / 2;
+    const laneOffset = 60;
+    const leftX = centerX - laneOffset;
+    const rightX = centerX + laneOffset;
+    const circleRadius = 40;
+
+    // タイマー更新
+    if (laneState.left.timer > 0) laneState.left.timer--;
+    if (laneState.right.timer > 0) laneState.right.timer--;
+
+    // 左レーン（杵 - 黄色）
+    drawLaneCircle(leftX, judgmentY, circleRadius, '#feca57', laneState.left);
+
+    // 右レーン（手 - 赤）
+    drawLaneCircle(rightX, judgmentY, circleRadius, '#ff4757', laneState.right);
+
+    // ヒットエフェクト描画
+    hitEffects.forEach((e, i) => {
+        e.update();
+        e.draw();
+        if (e.life <= 0) hitEffects.splice(i, 1);
+    });
+}
+
+function drawLaneCircle(x, y, radius, color, state) {
+    ctx.save();
+
+    // 押下時のスケール
+    const scale = state.timer > 0 ? 0.85 : 1;
+    const glowIntensity = state.timer > 0 ? 0.8 : 0.3;
+
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+
+    // 外側のグロー
+    const gradient = ctx.createRadialGradient(0, 0, radius * 0.5, 0, 0, radius * 1.5);
+    gradient.addColorStop(0, color);
+    gradient.addColorStop(0.5, color + '80');
+    gradient.addColorStop(1, color + '00');
+    ctx.fillStyle = gradient;
+    ctx.globalAlpha = glowIntensity;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // メインの円（枠線）
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = state.timer > 0 ? 6 : 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 内側の薄い塗り
+    ctx.fillStyle = color;
+    ctx.globalAlpha = state.timer > 0 ? 0.4 : 0.15;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 判定テキスト（押した時）
+    if (state.timer > 0 && state.judgment) {
+        ctx.globalAlpha = state.timer / 15;
+        ctx.fillStyle = {
+            'PERFECT': '#feca57',
+            'GREAT': '#badc58',
+            'OK': '#48dbfb',
+            'MISS': '#ff4757'
+        }[state.judgment] || '#fff';
+        ctx.font = 'bold 18px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.strokeText(state.judgment, 0, 0);
+        ctx.fillText(state.judgment, 0, 0);
+    }
+
+    ctx.restore();
+
+    // キーラベル（円の下に表示）
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 4;
+    ctx.font = '900 28px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const label = color === '#feca57' ? 'F' : 'J';
+    ctx.strokeText(label, x, y + radius + 10);
+    ctx.fillText(label, x, y + radius + 10);
+    ctx.restore();
 }
 
 function drawStack(width, height) {
-    const piles = Math.floor(score / 10);
-    const individuals = score % 10;
-    const startX = 70;
-    const baseLine = height - 160; // Up from bottom to avoid clutter
+    if (!images.pile.complete || score === 0) return;
 
-    // Draw 10-mochi piles
-    const pileSize = 90;
-    for (let i = 0; i < piles; i++) {
-        const col = Math.floor(i / 10);
-        const row = i % 10;
-        const x = startX + col * 95;
-        const y = baseLine - row * 30;
+    const stacks = Math.floor(score / 10);  // 10個で1スタック
+    const startX = 40;
+    const baseLine = height - 30;
+    const pileSize = 50;
+    const verticalSpacing = 35;  // 縦の間隔
+    const horizontalSpacing = 55;  // 横の間隔（列）
 
-        if (images.pile.complete) {
-            ctx.drawImage(images.pile, x - pileSize / 2, y - pileSize / 2, pileSize, pileSize);
-        }
-    }
+    // スタック数だけ画像を表示（縦に積む）
+    for (let i = 0; i < stacks; i++) {
+        const col = Math.floor(i / 8);  // 8個で次の列へ
+        const row = i % 8;
+        const x = startX + col * horizontalSpacing;
+        const y = baseLine - row * verticalSpacing;
 
-    // Draw current Accumulating
-    const mWidth = 46, mHeight = 22;
-    const nextCol = Math.floor(piles / 10);
-    const nextX = startX + nextCol * 95;
-    const nextYBase = baseLine - (piles % 10) * 30 + 20;
-
-    for (let j = 0; j < individuals; j++) {
-        const y = nextYBase - j * 7;
-        ctx.save();
-        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(nextX, y, mWidth / 2, mHeight / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
+        ctx.drawImage(images.pile, x - pileSize / 2, y - pileSize / 2, pileSize, pileSize);
     }
 }
 
 function onInput(inputType) {
     if (gameState !== 'playing') return;
+
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
+    const judgmentY = height * 0.72;
+    const centerX = width / 2;
+    const laneOffset = 60;
+
+    // どのレーンか
+    const isLeft = inputType === 'kine';
+    const laneX = isLeft ? centerX - laneOffset : centerX + laneOffset;
+    const lane = isLeft ? laneState.left : laneState.right;
+
     let closest = null, minD = Infinity;
     notes.forEach(n => {
         if (n.hit || n.missed) return;
@@ -407,19 +521,44 @@ function onInput(inputType) {
     // Visual feedback always triggers
     mochi.trigger(inputType === 'kine' ? 'usu' : 'hand');
 
+    // レーン状態を更新
+    lane.pressed = true;
+    lane.timer = 15;
+
     if (closest && minD < JUDGMENT.MISS) {
         const correct = (closest.type === 'usu' && inputType === 'kine') || (closest.type === 'hand' && inputType === 'hand');
         closest.hit = true;
         if (correct) {
-            if (minD < JUDGMENT.PERFECT) applyJudgment('PERFECT', inputType);
-            else if (minD < JUDGMENT.GREAT) applyJudgment('GREAT', inputType);
-            else applyJudgment('OK', inputType);
+            let judgment;
+            if (minD < JUDGMENT.PERFECT) judgment = 'PERFECT';
+            else if (minD < JUDGMENT.GREAT) judgment = 'GREAT';
+            else judgment = 'OK';
+
+            lane.judgment = judgment;
+            applyJudgment(judgment, inputType);
+
+            // ヒットエフェクト追加
+            const effectColor = {
+                'PERFECT': '#feca57',
+                'GREAT': '#badc58',
+                'OK': '#48dbfb'
+            }[judgment];
+            hitEffects.push(new HitEffect(laneX, judgmentY, effectColor, judgment));
+
+            // パーティクル追加（PERFECT時）
+            if (judgment === 'PERFECT') {
+                for (let i = 0; i < 8; i++) {
+                    mochi.particles.push(new Particle(laneX, judgmentY));
+                }
+            }
         } else {
             // Wrong lane
+            lane.judgment = 'MISS';
             applyJudgment('MISS', inputType, true);
         }
     } else {
         // Dry fire (Ska)
+        lane.judgment = 'MISS';
         applyJudgment('MISS', inputType, true);
     }
 }
@@ -463,8 +602,20 @@ function endGame() {
     gameState = 'gameOver'; if (bgm) bgm.pause();
     gameControls.classList.add('hidden');
     finalScoreEl.textContent = score;
-    statPerfectEl.textContent = stats.perfect; statGreatEl.textContent = stats.great; statOkEl.textContent = stats.ok; statMissEl.textContent = stats.miss;
+    statPerfectEl.textContent = stats.perfect;
+    statGreatEl.textContent = stats.great;
+    statOkEl.textContent = stats.ok;
+    statMissEl.textContent = stats.miss;
+    document.getElementById('stat-max-combo').textContent = maxCombo;
     gameOverScreen.classList.remove('hidden');
+}
+
+function retryGame() {
+    gameState = 'start';
+    if (bgm) bgm.pause();
+    gameControls.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    gameOverScreen.classList.add('hidden');
 }
 
 window.addEventListener('keydown', (e) => {
@@ -495,8 +646,10 @@ function animateBtn(id) {
 
 document.getElementById('btn-kine').addEventListener('mousedown', () => onInput('kine'));
 document.getElementById('btn-hand').addEventListener('mousedown', () => onInput('hand'));
-document.getElementById('start-middle').onclick = () => { sounds.ctx.resume(); startGame('middle'); };
-document.getElementById('start-high').onclick = () => { sounds.ctx.resume(); startGame('high'); };
+document.getElementById('btn-retry').addEventListener('click', () => retryGame());
+document.getElementById('start-easy').onclick = () => { sounds.ctx.resume(); startGame('easy'); };
+document.getElementById('start-normal').onclick = () => { sounds.ctx.resume(); startGame('normal'); };
+document.getElementById('start-hard').onclick = () => { sounds.ctx.resume(); startGame('hard'); };
 document.getElementById('restart-button').onclick = () => { startScreen.classList.remove('hidden'); gameOverScreen.classList.add('hidden'); };
 document.getElementById('share-button').onclick = () => {
     const text = `もちリズムで ${score} 個の餅をつき上げた！ #もちリズム`;

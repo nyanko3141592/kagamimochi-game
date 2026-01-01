@@ -328,3 +328,49 @@ button:active {
     transform: translate(6px, 6px);
     box-shadow: 0 0 0 #000;
 }
+
+/* やり直すボタン */
+.retry-btn {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 16px !important;
+    width: 80px !important;
+    height: 80px !important;
+}
+
+/* リザルト判定色 */
+.stat-perfect {
+    border-color: #feca57;
+    background: #fff8e7;
+}
+.stat-great {
+    border-color: #badc58;
+    background: #f4ffe7;
+}
+.stat-ok {
+    border-color: #48dbfb;
+    background: #e7f9ff;
+}
+.stat-miss {
+    border-color: #ff4757;
+    background: #ffe7e9;
+}
+
+/* MAX COMBO */
+.max-combo-box {
+    background: linear-gradient(135deg, #feca57, #ff4757);
+    padding: 20px;
+    border: 4px solid #000;
+    margin-bottom: 30px;
+    text-align: center;
+}
+.max-combo-box .stat-label {
+    color: #000;
+    opacity: 1;
+    font-size: 16px;
+}
+.max-combo-box .stat-value {
+    font-size: 48px;
+    color: #fff;
+    -webkit-text-stroke: 2px #000;
+}

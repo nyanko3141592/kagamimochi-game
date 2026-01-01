@@ -52,19 +52,24 @@
                     <p class="controls">キーボード または 下のボタンで操作</p>
                 </div>
                 <div class="mode-select">
-                    <button class="mode-button" id="start-middle">
-                        <span class="mode-name">ミドルテンポ</span>
+                    <button class="mode-button" id="start-easy">
+                        <span class="mode-name">EASY</span>
+                        <span class="mode-desc">かんたん</span>
+                    </button>
+                    <button class="mode-button" id="start-normal">
+                        <span class="mode-name">NORMAL</span>
                         <span class="mode-desc">ふつう</span>
                     </button>
-                    <button class="mode-button" id="start-high">
-                        <span class="mode-name">ハイテンポ</span>
-                        <span class="mode-desc">速い！</span>
+                    <button class="mode-button" id="start-hard">
+                        <span class="mode-name">HARD</span>
+                        <span class="mode-desc">むずかしい</span>
                     </button>
                 </div>
             </div>
 
             <div id="game-controls" class="hidden">
                 <button id="btn-kine" class="ctrl-btn">杵 (F)</button>
+                <button id="btn-retry" class="ctrl-btn retry-btn">やり直す</button>
                 <button id="btn-hand" class="ctrl-btn">手 (J)</button>
             </div>
 
@@ -76,22 +81,26 @@
                         <div id="final-score">0</div>
                     </div>
                     <div class="stats-grid">
-                        <div class="stat-box">
+                        <div class="stat-box stat-perfect">
                             <div class="stat-label">PERFECT</div>
                             <div id="stat-perfect" class="stat-value">0</div>
                         </div>
-                        <div class="stat-box">
+                        <div class="stat-box stat-great">
                             <div class="stat-label">GREAT</div>
                             <div id="stat-great" class="stat-value">0</div>
                         </div>
-                        <div class="stat-box">
+                        <div class="stat-box stat-ok">
                             <div class="stat-label">OK</div>
                             <div id="stat-ok" class="stat-value">0</div>
                         </div>
-                        <div class="stat-box">
+                        <div class="stat-box stat-miss">
                             <div class="stat-label">MISS</div>
                             <div id="stat-miss" class="stat-value">0</div>
                         </div>
+                    </div>
+                    <div class="max-combo-box">
+                        <div class="stat-label">MAX COMBO</div>
+                        <div id="stat-max-combo" class="stat-value">0</div>
                     </div>
                     <div class="result-actions">
                         <button id="restart-button">もう一度</button>

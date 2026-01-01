@@ -13,15 +13,9 @@ import numpy as np
 from pathlib import Path
 
 
-def analyze_audio(audio_path: str, output_path: str):
+def analyze_audio(audio_path: str):
     """
-    音源を解析し、譜面データをJSONで出力する
-
-    解析内容:
-    1. BPM検出
-    2. ビート位置検出
-    3. オンセット（音の立ち上がり）検出
-    4. 譜面データ生成
+    音源を解析し、解析データを返す
     """
     print(f"\n📂 解析中: {audio_path}")
 
@@ -33,35 +27,202 @@ def analyze_audio(audio_path: str, output_path: str):
 
     # 1. BPM検出
     tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
-    # tempo can be array or scalar
     bpm = float(tempo) if np.isscalar(tempo) else float(tempo[0])
     beat_times = librosa.frames_to_time(beat_frames, sr=sr)
     beat_times_ms = [int(t * 1000) for t in beat_times]
     print(f"   検出BPM: {bpm:.1f}")
     print(f"   ビート数: {len(beat_times_ms)}")
 
-    # 2. オンセット検出（より細かい音の立ち上がり）
+    # 2. オンセット検出
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
     onset_frames = librosa.onset.onset_detect(y=y, sr=sr, backtrack=False)
     onset_times = librosa.frames_to_time(onset_frames, sr=sr)
     onset_times_ms = [int(t * 1000) for t in onset_times]
+    onset_strengths = onset_env[onset_frames] if len(onset_frames) > 0 else np.array([])
     print(f"   オンセット数: {len(onset_times_ms)}")
 
-    # 3. 譜面データ生成
-    # 基本ビートをベースに、オンセットも参考にしてノートを配置
-    notes = generate_chart_from_analysis(beat_times_ms, onset_times_ms, bpm, duration_ms)
-    print(f"   生成ノート数: {len(notes)}")
+    # 3. RMS（音量）
+    rms = librosa.feature.rms(y=y)[0]
+    rms_times = librosa.frames_to_time(np.arange(len(rms)), sr=sr)
 
-    # 4. JSON出力
+    # 4. パーカッシブ/ハーモニック分離
+    y_harmonic, y_percussive = librosa.effects.hpss(y)
+
+    onset_frames_perc = librosa.onset.onset_detect(y=y_percussive, sr=sr, backtrack=False)
+    onset_times_perc_ms = [int(t * 1000) for t in librosa.frames_to_time(onset_frames_perc, sr=sr)]
+
+    onset_frames_harm = librosa.onset.onset_detect(y=y_harmonic, sr=sr, backtrack=False)
+    onset_times_harm_ms = [int(t * 1000) for t in librosa.frames_to_time(onset_frames_harm, sr=sr)]
+
+    print(f"   パーカッシブ: {len(onset_times_perc_ms)}, ハーモニック: {len(onset_times_harm_ms)}")
+
+    return {
+        "beat_times_ms": beat_times_ms,
+        "onset_times_ms": onset_times_ms,
+        "onset_strengths": onset_strengths,
+        "perc_onsets_ms": onset_times_perc_ms,
+        "harm_onsets_ms": onset_times_harm_ms,
+        "rms": rms,
+        "rms_times": rms_times,
+        "bpm": bpm,
+        "duration_ms": duration_ms
+    }
+
+
+def get_rms_at_time(time_ms: int, rms: np.ndarray, rms_times: np.ndarray) -> float:
+    """指定時刻のRMS（音量）を取得"""
+    time_sec = time_ms / 1000.0
+    idx = np.searchsorted(rms_times, time_sec)
+    idx = min(idx, len(rms) - 1)
+    return float(rms[idx])
+
+
+def generate_chart(
+    beat_times_ms: list,
+    onset_times_ms: list,
+    onset_strengths: np.ndarray,
+    perc_onsets_ms: list,
+    harm_onsets_ms: list,
+    rms: np.ndarray,
+    rms_times: np.ndarray,
+    bpm: float,
+    duration_ms: int,
+    difficulty: str = "middle"
+) -> list:
+    """
+    難易度別の譜面生成
+
+    方針:
+    - 複数のパターンを組み合わせて変化をつける
+    - 盛り上がりで密度アップ、静かな部分で休符
+    - 難易度で密度とパターンの複雑さを調整
+    """
+    START_OFFSET_MS = 3000
+    END_OFFSET_MS = 5000
+
+    # 難易度別パラメータ
+    if difficulty == "easy":
+        MIN_NOTE_GAP_MS = 350  # ノート間隔広め
+        ADD_OFFBEAT = False
+        RMS_LOW_MULT = 0.6    # 静かな部分を多くスキップ
+    elif difficulty == "normal":
+        MIN_NOTE_GAP_MS = 250
+        ADD_OFFBEAT = False
+        RMS_LOW_MULT = 0.4
+    else:  # hard
+        MIN_NOTE_GAP_MS = 140  # ノート間隔狭め
+        ADD_OFFBEAT = True
+        RMS_LOW_MULT = 0.2
+
+    notes = []
+    used_times = set()
+
+    # RMS統計
+    rms_mean = np.mean(rms)
+    rms_std = np.std(rms)
+    rms_high = rms_mean + rms_std * 0.5
+    rms_low = rms_mean - rms_std * RMS_LOW_MULT
+
+    def is_too_close(time_ms: int) -> bool:
+        return any(abs(time_ms - t) < MIN_NOTE_GAP_MS for t in used_times)
+
+    def add_note(time_ms: int, note_type: str):
+        if time_ms < START_OFFSET_MS or time_ms > duration_ms - END_OFFSET_MS:
+            return False
+        if is_too_close(time_ms):
+            return False
+        notes.append({"time": time_ms, "type": note_type})
+        used_times.add(time_ms)
+        return True
+
+    # パターン定義（バリエーション豊富に）
+    patterns = [
+        ["usu", "hand", "usu", "hand"],           # 交互
+        ["usu", "usu", "hand", "hand"],           # ぺったんこねこね
+        ["usu", "hand", "hand", "usu"],           # 変則
+        ["hand", "usu", "usu", "hand"],           # 逆変則
+        ["usu", "usu", "usu", "hand"],            # 連打→切り替え
+        ["hand", "hand", "hand", "usu"],          # 連打→切り替え（逆）
+    ]
+
+    # 小節（4拍）ごとにパターンを切り替え
+    current_pattern_idx = 0
+    beat_in_pattern = 0
+    last_pattern_change = 0
+
+    for i, beat_time in enumerate(beat_times_ms):
+        if beat_time < START_OFFSET_MS or beat_time > duration_ms - END_OFFSET_MS:
+            continue
+
+        current_rms = get_rms_at_time(beat_time, rms, rms_times)
+
+        # 静かな部分はスキップ
+        if current_rms < rms_low:
+            continue
+
+        # 8拍ごとにパターン変更（盛り上がりで頻繁に変更）
+        pattern_change_interval = 6 if current_rms > rms_high else 8
+        if beat_in_pattern >= pattern_change_interval:
+            # 次のパターンへ（音量に応じて選択）
+            if current_rms > rms_high:
+                # 盛り上がり：変則パターンを多めに
+                current_pattern_idx = (current_pattern_idx + 2) % len(patterns)
+            else:
+                # 通常：順番に
+                current_pattern_idx = (current_pattern_idx + 1) % len(patterns)
+            beat_in_pattern = 0
+
+        pattern = patterns[current_pattern_idx]
+        note_type = pattern[beat_in_pattern % len(pattern)]
+
+        if add_note(beat_time, note_type):
+            beat_in_pattern += 1
+
+        # 盛り上がり部分：裏拍追加（highのみ）
+        if ADD_OFFBEAT and current_rms > rms_high and i < len(beat_times_ms) - 1:
+            next_beat = beat_times_ms[i + 1]
+            half_beat = beat_time + (next_beat - beat_time) // 2
+
+            # 裏拍は表拍と逆のタイプ
+            offbeat_type = "hand" if note_type == "usu" else "usu"
+            add_note(half_beat, offbeat_type)
+
+    # 時間順ソート
+    notes.sort(key=lambda n: n["time"])
+
+    return notes
+
+
+def save_chart(analysis_data: dict, output_path: str, difficulty: str):
+    """譜面を生成してJSONファイルに保存"""
+    notes = generate_chart(
+        beat_times_ms=analysis_data["beat_times_ms"],
+        onset_times_ms=analysis_data["onset_times_ms"],
+        onset_strengths=analysis_data["onset_strengths"],
+        perc_onsets_ms=analysis_data["perc_onsets_ms"],
+        harm_onsets_ms=analysis_data["harm_onsets_ms"],
+        rms=analysis_data["rms"],
+        rms_times=analysis_data["rms_times"],
+        bpm=analysis_data["bpm"],
+        duration_ms=analysis_data["duration_ms"],
+        difficulty=difficulty
+    )
+
+    # 統計
+    usu_count = sum(1 for n in notes if n["type"] == "usu")
+    hand_count = sum(1 for n in notes if n["type"] == "hand")
+    print(f"   [{difficulty}] ノート数: {len(notes)} (usu: {usu_count}, hand: {hand_count})")
+
+    # JSON出力
     chart_data = {
         "meta": {
-            "bpm": round(bpm, 1),
-            "duration_ms": duration_ms,
-            "beat_count": len(beat_times_ms),
-            "onset_count": len(onset_times_ms),
-            "note_count": len(notes)
+            "bpm": round(analysis_data["bpm"], 1),
+            "duration_ms": analysis_data["duration_ms"],
+            "beat_count": len(analysis_data["beat_times_ms"]),
+            "note_count": len(notes),
+            "difficulty": difficulty
         },
-        "beats": beat_times_ms,
-        "onsets": onset_times_ms,
+        "beats": analysis_data["beat_times_ms"],
         "notes": notes
     }
 
@@ -69,90 +230,6 @@ def analyze_audio(audio_path: str, output_path: str):
         json.dump(chart_data, f, indent=2, ensure_ascii=False)
 
     print(f"   ✅ 出力: {output_path}")
-    return chart_data
-
-
-def generate_chart_from_analysis(beats_ms: list, onsets_ms: list, bpm: float, duration_ms: int) -> list:
-    """
-    解析結果から譜面データを生成
-
-    ルール:
-    - 基本はビートに合わせてノートを配置
-    - usu(杵)とhand(手)を交互に配置（餅つきのリズム）
-    - オンセットが近い位置にある場合は、より正確な位置を採用
-    - 最初の3秒は準備時間として空ける
-    - 最後の5秒はフェードアウト用に空ける
-    """
-    START_OFFSET_MS = 3000  # 開始オフセット
-    END_OFFSET_MS = 5000    # 終了オフセット
-    MIN_NOTE_GAP_MS = 150   # ノート間の最小間隔
-
-    notes = []
-    is_usu = True  # 最初は杵（usu）から
-    last_note_time = 0
-
-    for beat_time in beats_ms:
-        # 準備時間とフェードアウト時間を除外
-        if beat_time < START_OFFSET_MS:
-            continue
-        if beat_time > duration_ms - END_OFFSET_MS:
-            continue
-
-        # 最小間隔チェック
-        if beat_time - last_note_time < MIN_NOTE_GAP_MS:
-            continue
-
-        # オンセットで微調整（近くにオンセットがあればそちらを採用）
-        adjusted_time = beat_time
-        for onset_time in onsets_ms:
-            if abs(onset_time - beat_time) < 50:  # 50ms以内なら調整
-                adjusted_time = onset_time
-                break
-
-        # ノートを追加
-        note_type = "usu" if is_usu else "hand"
-        notes.append({
-            "time": adjusted_time,
-            "type": note_type
-        })
-
-        last_note_time = adjusted_time
-        is_usu = not is_usu  # 交互に切り替え
-
-    # オンセットベースの追加ノート（ビートにないが強い音がある箇所）
-    # 密度が高すぎないように制限
-    beat_set = set(beats_ms)
-    added_onsets = 0
-    max_added_onsets = len(beats_ms) // 4  # ビート数の1/4まで追加可能
-
-    for onset_time in onsets_ms:
-        if added_onsets >= max_added_onsets:
-            break
-        if onset_time < START_OFFSET_MS or onset_time > duration_ms - END_OFFSET_MS:
-            continue
-
-        # 既存のノートから離れているか確認
-        is_far_enough = all(abs(onset_time - n["time"]) > MIN_NOTE_GAP_MS * 2 for n in notes)
-
-        if is_far_enough:
-            # 直前のノートのタイプを確認して交互になるように
-            prev_notes = [n for n in notes if n["time"] < onset_time]
-            if prev_notes:
-                last_type = prev_notes[-1]["type"]
-                new_type = "hand" if last_type == "usu" else "usu"
-            else:
-                new_type = "usu"
-
-            notes.append({
-                "time": onset_time,
-                "type": new_type
-            })
-            added_onsets += 1
-
-    # 時間順にソート
-    notes.sort(key=lambda n: n["time"])
-
-    return notes
 
 
 def main():
@@ -160,26 +237,30 @@ def main():
     sounds_dir = project_root / "public" / "mochi-rhythm" / "sounds"
     charts_dir = project_root / "public" / "mochi-rhythm" / "charts"
 
-    # charts ディレクトリ作成
     charts_dir.mkdir(parents=True, exist_ok=True)
 
-    # 各音源を解析
-    audio_files = [
-        ("middle.mp3", "middle.json"),
-        ("high.mp3", "high.json"),
-    ]
+    # main.wavを使用
+    audio_path = sounds_dir / "main.wav"
 
-    print("🎵 餅つきリズムゲーム 自動譜面生成ツール")
+    print("🎵 餅つきリズムゲーム 自動譜面生成ツール v5")
+    print("=" * 50)
+    print("方針:")
+    print("  - 1つの曲(main.wav)から3難易度の譜面を生成")
+    print("  - easy: シンプル、ゆったり")
+    print("  - normal: 標準的な密度")
+    print("  - hard: 裏拍追加、高密度")
     print("=" * 50)
 
-    for audio_file, chart_file in audio_files:
-        audio_path = sounds_dir / audio_file
-        chart_path = charts_dir / chart_file
+    if audio_path.exists():
+        # 音源解析
+        analysis_data = analyze_audio(str(audio_path))
 
-        if audio_path.exists():
-            analyze_audio(str(audio_path), str(chart_path))
-        else:
-            print(f"⚠️  音源が見つかりません: {audio_path}")
+        # 難易度別に譜面生成
+        save_chart(analysis_data, str(charts_dir / "easy.json"), "easy")
+        save_chart(analysis_data, str(charts_dir / "normal.json"), "normal")
+        save_chart(analysis_data, str(charts_dir / "hard.json"), "hard")
+    else:
+        print(f"⚠️  音源が見つかりません: {audio_path}")
 
     print("\n" + "=" * 50)
     print("✨ 譜面生成完了!")
