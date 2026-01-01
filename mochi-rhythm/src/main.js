@@ -97,6 +97,16 @@ class SoundManager {
         osc.connect(gain); gain.connect(this.masterGain);
         osc.start(); osc.stop(this.ctx.currentTime + 0.2);
     }
+    playSka() {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.type = 'square'; osc.frequency.setValueAtTime(100, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(30, this.ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.15);
+        osc.connect(gain); gain.connect(this.masterGain);
+        osc.start(); osc.stop(this.ctx.currentTime + 0.15);
+    }
     playMiss() {
         if (this.ctx.state === 'suspended') this.ctx.resume();
         const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
@@ -194,8 +204,10 @@ let gameState = 'start', score = 0, combo = 0, maxCombo = 0, notes = [], startTi
 let stats = { perfect: 0, great: 0, ok: 0, miss: 0 };
 const dpr = window.devicePixelRatio || 1;
 
-const BPM_CONFIG = { middle: 120, high: 170 };
 const JUDGMENT = { PERFECT: 70, GREAT: 120, OK: 170, MISS: 240 };
+
+// 譜面データキャッシュ
+const chartCache = {};
 
 const mochi = {
     squishX: 1, squishY: 1, rotation: 0,
@@ -283,29 +295,29 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-function startGame(tempo) {
+async function loadChart(tempo) {
+    if (chartCache[tempo]) return chartCache[tempo];
+    const res = await fetch(`/mochi-rhythm/charts/${tempo}.json`);
+    const data = await res.json();
+    chartCache[tempo] = data;
+    return data;
+}
+
+async function startGame(tempo) {
     gameState = 'playing'; score = 0; combo = 0; maxCombo = 0;
     stats = { perfect: 0, great: 0, ok: 0, miss: 0 };
-    const duration = tempo === 'middle' ? 207000 : 193000;
-    notes = generateChart(BPM_CONFIG[tempo], duration);
+
+    // JSON譜面を読み込み
+    const chart = await loadChart(tempo);
+    notes = chart.notes.map(n => new Note(n.time, n.type));
+    console.log(`📜 譜面読み込み完了: ${tempo} (BPM: ${chart.meta.bpm}, ノート数: ${chart.meta.note_count})`);
+
     startTime = performance.now(); updateUI();
     startScreen.classList.add('hidden'); gameOverScreen.classList.add('hidden'); gameControls.classList.remove('hidden');
     if (bgm) bgm.pause();
     bgm = new Audio(tempo === 'middle' ? '/mochi-rhythm/sounds/middle.mp3' : '/mochi-rhythm/sounds/high.mp3');
     bgm.play();
     requestAnimationFrame(gameLoop);
-}
-
-function generateChart(bpm, durationMs) {
-    const list = []; const beatMs = 60000 / bpm; const duration = durationMs - 5000;
-    let isUsu = true;
-    for (let t = 3000; t < duration; t += beatMs) {
-        if (Math.random() < 0.05 && !isUsu) { isUsu = true; continue; }
-        list.push(new Note(t, isUsu ? 'usu' : 'hand'));
-        if (isUsu && Math.random() < 0.15) list.push(new Note(t + beatMs / 2, 'usu'));
-        isUsu = !isUsu;
-    }
-    return list;
 }
 
 function gameLoop(time) {
@@ -391,20 +403,36 @@ function onInput(inputType) {
         const d = Math.abs(n.time - currentTime);
         if (d < minD) { minD = d; closest = n; }
     });
+
+    // Visual feedback always triggers
+    mochi.trigger(inputType === 'kine' ? 'usu' : 'hand');
+
     if (closest && minD < JUDGMENT.MISS) {
         const correct = (closest.type === 'usu' && inputType === 'kine') || (closest.type === 'hand' && inputType === 'hand');
         closest.hit = true;
         if (correct) {
-            mochi.trigger(closest.type);
             if (minD < JUDGMENT.PERFECT) applyJudgment('PERFECT', inputType);
             else if (minD < JUDGMENT.GREAT) applyJudgment('GREAT', inputType);
             else applyJudgment('OK', inputType);
-        } else applyJudgment('MISS', inputType);
+        } else {
+            // Wrong lane
+            applyJudgment('MISS', inputType, true);
+        }
+    } else {
+        // Dry fire (Ska)
+        applyJudgment('MISS', inputType, true);
     }
 }
 
-function applyJudgment(type, input) {
-    if (type === 'MISS') { combo = 0; stats.miss++; sounds.playMiss(); }
+function applyJudgment(type, input, isSka = false) {
+    if (type === 'MISS') {
+        combo = 0; stats.miss++;
+        if (isSka) {
+            sounds.playSka(); // Distinct sound for missing notes entirely
+        } else {
+            sounds.playMiss(); // Sound for hitting but at wrong time/lane
+        }
+    }
     else {
         combo++; if (combo > maxCombo) maxCombo = combo;
         stats[type.toLowerCase()]++; score++;
@@ -418,7 +446,13 @@ function showJudgment(type) {
     judgmentText.textContent = type;
     judgmentText.style.color = { 'PERFECT': '#feca57', 'GREAT': '#badc58', 'OK': '#48dbfb', 'MISS': '#ff4757' }[type];
     judgmentText.style.webkitTextStroke = "2px #000";
-    judgmentText.animate([{ opacity: 0, transform: 'translate(-50%, 0) scale(0.5)' }, { opacity: 1, transform: 'translate(-50%, -15px) scale(1.2)' }, { opacity: 0, transform: 'translate(-50%, -30px) scale(1.3)' }], 250);
+    judgmentText.style.opacity = '1';
+    const anim = judgmentText.animate([
+        { opacity: 0, transform: 'translate(-50%, 0) scale(0.5)' },
+        { opacity: 1, transform: 'translate(-50%, -15px) scale(1.2)' },
+        { opacity: 0, transform: 'translate(-50%, -30px) scale(1.3)' }
+    ], 250);
+    anim.onfinish = () => { judgmentText.style.opacity = '0'; };
     if (combo > 1) { comboContainer.classList.remove('hidden'); comboCountEl.animate([{ transform: 'scale(1.4)' }, { transform: 'scale(1)' }], 100); }
     else comboContainer.classList.add('hidden');
 }
