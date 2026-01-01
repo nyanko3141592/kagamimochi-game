@@ -101,18 +101,24 @@ def generate_chart(
     END_OFFSET_MS = 5000
 
     # 難易度別パラメータ
+    ADD_OFFBEAT = False
+    ADD_QUARTER_BEAT = False
+
     if difficulty == "easy":
         MIN_NOTE_GAP_MS = 350  # ノート間隔広め
-        ADD_OFFBEAT = False
         RMS_LOW_MULT = 0.6    # 静かな部分を多くスキップ
     elif difficulty == "normal":
         MIN_NOTE_GAP_MS = 250
-        ADD_OFFBEAT = False
         RMS_LOW_MULT = 0.4
-    else:  # hard
+    elif difficulty == "hard":
         MIN_NOTE_GAP_MS = 140  # ノート間隔狭め
         ADD_OFFBEAT = True
         RMS_LOW_MULT = 0.2
+    else:  # expert
+        MIN_NOTE_GAP_MS = 100  # 超高密度
+        ADD_OFFBEAT = True
+        ADD_QUARTER_BEAT = True  # 4分の1拍も追加
+        RMS_LOW_MULT = 0.1  # 静かな部分もほぼ叩く
 
     notes = []
     used_times = set()
@@ -187,6 +193,13 @@ def generate_chart(
             offbeat_type = "hand" if note_type == "usu" else "usu"
             add_note(half_beat, offbeat_type)
 
+            # expert: 4分の1拍も追加（超高密度）
+            if ADD_QUARTER_BEAT:
+                quarter_beat_1 = beat_time + (next_beat - beat_time) // 4
+                quarter_beat_3 = beat_time + (next_beat - beat_time) * 3 // 4
+                add_note(quarter_beat_1, note_type)
+                add_note(quarter_beat_3, offbeat_type)
+
     # 時間順ソート
     notes.sort(key=lambda n: n["time"])
 
@@ -242,13 +255,14 @@ def main():
     # main.wavを使用
     audio_path = sounds_dir / "main.wav"
 
-    print("🎵 餅つきリズムゲーム 自動譜面生成ツール v5")
+    print("🎵 餅つきリズムゲーム 自動譜面生成ツール v6")
     print("=" * 50)
     print("方針:")
-    print("  - 1つの曲(main.wav)から3難易度の譜面を生成")
+    print("  - 1つの曲(main.wav)から4難易度の譜面を生成")
     print("  - easy: シンプル、ゆったり")
     print("  - normal: 標準的な密度")
     print("  - hard: 裏拍追加、高密度")
+    print("  - expert: 16分音符追加、超高密度")
     print("=" * 50)
 
     if audio_path.exists():
@@ -259,6 +273,7 @@ def main():
         save_chart(analysis_data, str(charts_dir / "easy.json"), "easy")
         save_chart(analysis_data, str(charts_dir / "normal.json"), "normal")
         save_chart(analysis_data, str(charts_dir / "hard.json"), "hard")
+        save_chart(analysis_data, str(charts_dir / "expert.json"), "expert")
     else:
         print(f"⚠️  音源が見つかりません: {audio_path}")
 

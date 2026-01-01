@@ -961,6 +961,35 @@ function endGame() {
 function showResult() {
     const totalNotes = stats.perfect + stats.great + stats.ok + stats.miss;
     const rate = totalNotes > 0 ? score / totalNotes : 0;
+    const perfectRate = totalNotes > 0 ? stats.perfect / totalNotes : 0;
+
+    // ランク計算
+    let rank, rankClass;
+    if (rate >= 0.95 && perfectRate >= 0.7) {
+        rank = 'S'; rankClass = 'rank-s';
+    } else if (rate >= 0.85) {
+        rank = 'A'; rankClass = 'rank-a';
+    } else if (rate >= 0.7) {
+        rank = 'B'; rankClass = 'rank-b';
+    } else {
+        rank = 'C'; rankClass = 'rank-c';
+    }
+
+    // ランク表示
+    const rankEl = document.getElementById('result-rank');
+    rankEl.textContent = rank;
+    rankEl.className = 'result-rank ' + rankClass;
+
+    // 餅スタック表示（最大10個）
+    const mochiStack = document.getElementById('mochi-stack');
+    mochiStack.innerHTML = '';
+    const stackCount = Math.min(Math.ceil(score / 5), 10);
+    for (let i = 0; i < stackCount; i++) {
+        const mochi = document.createElement('div');
+        mochi.className = 'mochi-item';
+        mochi.style.animationDelay = `${i * 0.1}s`;
+        mochiStack.appendChild(mochi);
+    }
 
     // 数字カウントアップアニメーション
     animateCounter(finalMochiEl, score, 800);
@@ -974,20 +1003,26 @@ function showResult() {
         animateCounter(statMaxComboEl, maxCombo, 500);
     }, 500);
 
-    // コメント生成
+    // PERFECT率表示
+    const perfectRateEl = document.getElementById('stat-perfect-rate');
+    setTimeout(() => {
+        const pctValue = Math.round(perfectRate * 100);
+        animateCounter(perfectRateEl, pctValue, 500);
+        setTimeout(() => {
+            perfectRateEl.textContent = pctValue + '%';
+        }, 550);
+    }, 700);
+
+    // コメント生成（ランクに応じた詳細コメント）
     let comment = '';
-    if (rate >= 0.95) {
-        comment = '🎊 名人級の餅つき！お見事！ 🎊';
-    } else if (rate >= 0.85) {
-        comment = '✨ 素晴らしい腕前！ ✨';
-    } else if (rate >= 0.7) {
+    if (rank === 'S') {
+        comment = '🎊 名人級の餅つき！完璧！ 🎊';
+    } else if (rank === 'A') {
+        comment = '✨ 素晴らしい腕前です！ ✨';
+    } else if (rank === 'B') {
         comment = '👍 いい感じにつけました！';
-    } else if (rate >= 0.5) {
-        comment = 'まずまずの出来栄え！';
-    } else if (rate >= 0.3) {
-        comment = 'もう少し練習しよう！';
     } else {
-        comment = '餅つきは難しい...！';
+        comment = 'もっと練習して上を目指そう！';
     }
 
     setTimeout(() => {
@@ -997,7 +1032,7 @@ function showResult() {
             { opacity: 1, transform: 'scale(1.1)' },
             { opacity: 1, transform: 'scale(1)' }
         ], 400);
-    }, 800);
+    }, 900);
 
     gameOverScreen.classList.remove('hidden');
     gameOverScreen.animate([
@@ -1069,13 +1104,31 @@ document.getElementById('btn-retry').addEventListener('click', () => retryGame()
 document.getElementById('start-easy').onclick = () => { sounds.ctx.resume(); startGame('easy'); };
 document.getElementById('start-normal').onclick = () => { sounds.ctx.resume(); startGame('normal'); };
 document.getElementById('start-hard').onclick = () => { sounds.ctx.resume(); startGame('hard'); };
-document.getElementById('restart-button').onclick = () => { startScreen.classList.remove('hidden'); gameOverScreen.classList.add('hidden'); confettis = []; };
+document.getElementById('start-expert').onclick = () => { sounds.ctx.resume(); startGame('expert'); };
+document.getElementById('restart-button').onclick = () => { gameOverScreen.classList.add('hidden'); confettis = []; startGame(currentDifficulty); };
+document.getElementById('back-to-start-button').onclick = () => { startScreen.classList.remove('hidden'); gameOverScreen.classList.add('hidden'); confettis = []; };
 document.getElementById('share-button').onclick = () => {
-    const niceCount = stats.perfect + stats.great;
-    const difficultyName = { easy: 'ゆっくり', normal: 'ふつう', hard: 'はやい' }[currentDifficulty];
-    const text = `【もちリズム】${difficultyName}モードで${score}個の餅をつきました！
+    const totalNotes = stats.perfect + stats.great + stats.ok + stats.miss;
+    const rate = totalNotes > 0 ? score / totalNotes : 0;
+    const perfectRate = totalNotes > 0 ? stats.perfect / totalNotes : 0;
 
-🎯 ナイスタイミング: ${niceCount}回
+    // ランク計算
+    let rank;
+    if (rate >= 0.95 && perfectRate >= 0.7) rank = 'S';
+    else if (rate >= 0.85) rank = 'A';
+    else if (rate >= 0.7) rank = 'B';
+    else rank = 'C';
+
+    const difficultyName = { easy: 'ゆっくり', normal: 'ふつう', hard: 'はやい', expert: 'おに' }[currentDifficulty];
+    const rankEmoji = { S: '👑', A: '🌟', B: '✨', C: '💪' }[rank];
+    const mochiEmoji = '🍡'.repeat(Math.min(Math.ceil(score / 10), 5));
+
+    const text = `【もちリズム】${difficultyName}モード
+
+${rankEmoji} ランク${rank} ${rankEmoji}
+${mochiEmoji} ${score}個の餅をつきあげた！
+
+🎯 PERFECT率: ${Math.round(perfectRate * 100)}%
 🔥 最大コンボ: ${maxCombo}
 
 #もちリズム`;

@@ -231,6 +231,117 @@ h1 {
     font-weight: 900;
 }
 
+/* ゆっくり - 優しい緑 */
+#start-easy {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-color: #4caf50;
+    box-shadow: 6px 6px 0 #2e7d32;
+}
+
+#start-easy:hover {
+    box-shadow: 12px 12px 0 #2e7d32;
+}
+
+#start-easy:active {
+    box-shadow: 0px 0px 0 #2e7d32;
+}
+
+#start-easy .mode-name {
+    color: #2e7d32;
+}
+
+/* ふつう - 爽やかな青 */
+#start-normal {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-color: #2196f3;
+    box-shadow: 6px 6px 0 #1565c0;
+}
+
+#start-normal:hover {
+    box-shadow: 12px 12px 0 #1565c0;
+}
+
+#start-normal:active {
+    box-shadow: 0px 0px 0 #1565c0;
+}
+
+#start-normal .mode-name {
+    color: #1565c0;
+}
+
+/* はやい - 情熱の赤オレンジ */
+#start-hard {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%);
+    border-color: #ff9800;
+    box-shadow: 6px 6px 0 #e65100;
+}
+
+#start-hard:hover {
+    box-shadow: 12px 12px 0 #e65100;
+}
+
+#start-hard:active {
+    box-shadow: 0px 0px 0 #e65100;
+}
+
+#start-hard .mode-name {
+    color: #e65100;
+}
+
+/* おに - 禁断の紫 */
+.mode-expert {
+    background: linear-gradient(135deg, #1a1a2e 0%, #4a0e4e 100%);
+    color: #fff;
+    border-color: #ff0066;
+    box-shadow: 6px 6px 0 #ff0066;
+    position: relative;
+    overflow: hidden;
+}
+
+.mode-expert::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent 40%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 60%
+    );
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) rotate(45deg); }
+}
+
+.mode-expert:hover {
+    box-shadow: 12px 12px 0 #ff0066;
+}
+
+.mode-expert:active {
+    box-shadow: 0px 0px 0 #ff0066;
+}
+
+.mode-expert .mode-name {
+    background: linear-gradient(90deg, #ff0066, #ff6b6b, #ffd93d, #ff0066);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shineText 2s linear infinite;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes shineText {
+    to { background-position: 200% center; }
+}
+
 .result-panel {
     background: #fff;
     border: 6px solid #000;
@@ -310,30 +421,6 @@ h1 {
     font-family: var(--font-en);
 }
 
-button#restart-button,
-button#share-button {
-    padding: 20px 40px;
-    border: 4px solid #000;
-    cursor: pointer;
-    font-weight: 900;
-    font-size: 20px;
-    box-shadow: 6px 6px 0 #000;
-    transition: all 0.1s;
-}
-
-#restart-button {
-    background: var(--color-accent);
-}
-
-#share-button {
-    background: #fff;
-}
-
-button:active {
-    transform: translate(6px, 6px);
-    box-shadow: 0 0 0 #000;
-}
-
 /* やり直すボタン */
 .retry-btn {
     background: #fff !important;
@@ -343,77 +430,221 @@ button:active {
     height: 80px !important;
 }
 
-/* 餅つきリザルト */
-.result-title {
-    font-size: 36px;
-    font-weight: 900;
-    margin-bottom: 30px;
-    color: #000;
+/* ============================================
+   餅つきリザルト - 豪華演出版
+   ============================================ */
+
+.result-panel {
+    background: linear-gradient(135deg, #fff 0%, #fff8e7 50%, #fff 100%);
+    padding: 35px 40px;
+    max-width: 480px;
+    animation: resultAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.mochi-result {
-    background: linear-gradient(135deg, #fff8e7, #ffe4b5);
-    border: 4px solid #000;
-    padding: 30px;
-    margin-bottom: 25px;
+@keyframes resultAppear {
+    0% { transform: scale(0.8) translateY(30px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-.mochi-count-label {
-    font-size: 18px;
-    font-weight: 700;
-    color: #666;
-    margin-bottom: 10px;
-}
-
-.mochi-count {
-    font-size: 72px;
-    font-weight: 900;
-    color: #000;
-    line-height: 1;
-}
-
-.mochi-unit {
-    font-size: 32px;
-    margin-left: 5px;
-}
-
-.result-details {
+.result-header {
     margin-bottom: 20px;
 }
 
-.detail-row {
+.result-rank {
+    font-family: var(--font-en);
+    font-size: 80px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 5px;
+    background: linear-gradient(180deg, #f7c242 0%, #eb6238 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(3px 3px 0 #000);
+    animation: rankPulse 1s ease-in-out infinite;
+}
+
+.result-rank.rank-s { background: linear-gradient(180deg, #ffd700 0%, #ff8c00 100%); -webkit-background-clip: text; background-clip: text; }
+.result-rank.rank-a { background: linear-gradient(180deg, #ff6b6b 0%, #c53d43 100%); -webkit-background-clip: text; background-clip: text; }
+.result-rank.rank-b { background: linear-gradient(180deg, #4ecdc4 0%, #2d9596 100%); -webkit-background-clip: text; background-clip: text; }
+.result-rank.rank-c { background: linear-gradient(180deg, #a8a8a8 0%, #666 100%); -webkit-background-clip: text; background-clip: text; }
+
+@keyframes rankPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.result-title {
+    font-size: 28px;
+    font-weight: 900;
+    color: #000;
+    margin: 0;
+}
+
+/* 餅の視覚表示 */
+.mochi-display {
     display: flex;
-    justify-content: space-between;
-    padding: 12px 20px;
-    border-bottom: 2px dashed #ddd;
+    align-items: center;
+    gap: 20px;
+    background: linear-gradient(135deg, #fff8e7, #ffe4b5);
+    border: 4px solid #000;
+    padding: 20px;
+    margin-bottom: 20px;
 }
 
-.detail-row:last-child {
-    border-bottom: none;
+.mochi-visual {
+    flex-shrink: 0;
 }
 
-.detail-label {
+.mochi-stack {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    height: 100px;
+    justify-content: flex-end;
+}
+
+.mochi-item {
+    width: 60px;
+    height: 20px;
+    background: linear-gradient(180deg, #fff 0%, #f5f0e6 50%, #e8dcc8 100%);
+    border: 2px solid #c9b896;
+    border-radius: 50%;
+    margin-top: -8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    animation: mochiPop 0.3s ease-out backwards;
+}
+
+@keyframes mochiPop {
+    0% { transform: scale(0) translateY(20px); opacity: 0; }
+    70% { transform: scale(1.2) translateY(-5px); }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.mochi-item:first-child {
+    margin-top: 0;
+}
+
+.mochi-score {
+    flex: 1;
+    text-align: left;
+}
+
+.mochi-count-label {
+    font-size: 14px;
     font-weight: 700;
     color: #666;
+    margin-bottom: 5px;
 }
 
-.detail-value {
+.mochi-count {
+    font-size: 56px;
     font-weight: 900;
-    font-size: 20px;
+    color: #000;
+    line-height: 1;
     font-family: var(--font-en);
 }
 
-.result-comment {
-    font-size: 20px;
-    font-weight: 700;
-    padding: 15px;
-    margin-bottom: 25px;
-    background: #f8f9fa;
-    border: 3px solid #000;
+.mochi-unit {
+    font-size: 24px;
+    margin-left: 5px;
+    font-family: var(--font-main);
 }
 
+/* 統計表示 */
+.result-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 15px;
+    padding: 15px 0;
+    border-top: 3px dashed #ddd;
+    border-bottom: 3px dashed #ddd;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.stat-icon {
+    font-size: 20px;
+}
+
+.stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #888;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 900;
+    font-family: var(--font-en);
+    color: #000;
+}
+
+/* コメント */
+.result-comment {
+    font-size: 18px;
+    font-weight: 700;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    background: #f0f0f0;
+    border: 3px solid #000;
+    border-radius: 0;
+}
+
+/* アクションボタン */
 .result-actions {
     display: flex;
-    gap: 15px;
+    gap: 12px;
     justify-content: center;
+}
+
+.action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 20px;
+    border: 4px solid #000;
+    cursor: pointer;
+    font-weight: 900;
+    box-shadow: 5px 5px 0 #000;
+    transition: all 0.1s;
+    min-width: 90px;
+}
+
+.action-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 7px 7px 0 #000;
+}
+
+.action-btn:active {
+    transform: translate(5px, 5px);
+    box-shadow: 0 0 0 #000;
+}
+
+.btn-icon {
+    font-size: 24px;
+}
+
+.btn-text {
+    font-size: 14px;
+}
+
+.primary-btn {
+    background: var(--color-accent);
+}
+
+.secondary-btn {
+    background: #f0f0f0;
+}
+
+.share-btn {
+    background: #1da1f2;
+    color: #fff;
 }

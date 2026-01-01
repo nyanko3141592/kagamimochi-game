@@ -61,6 +61,9 @@
                     <button class="mode-button" id="start-hard">
                         <span class="mode-name">はやい</span>
                     </button>
+                    <button class="mode-button mode-expert" id="start-expert">
+                        <span class="mode-name">おに</span>
+                    </button>
                 </div>
             </div>
 
@@ -72,25 +75,50 @@
 
             <div id="game-over-screen" class="overlay hidden">
                 <div class="result-panel">
-                    <div class="result-title">餅つき完了！</div>
-                    <div class="mochi-result">
-                        <div class="mochi-count-label">つきあげた餅</div>
-                        <div class="mochi-count"><span id="final-mochi">0</span><span class="mochi-unit">個</span></div>
+                    <div class="result-header">
+                        <div id="result-rank" class="result-rank">S</div>
+                        <div class="result-title">餅つき完了！</div>
                     </div>
-                    <div class="result-details">
-                        <div class="detail-row">
-                            <span class="detail-label">ナイスタイミング</span>
-                            <span id="stat-nice" class="detail-value">0</span>
+                    <div class="mochi-display">
+                        <div class="mochi-visual">
+                            <div id="mochi-stack" class="mochi-stack"></div>
                         </div>
-                        <div class="detail-row">
-                            <span class="detail-label">連続コンボ</span>
-                            <span id="stat-max-combo" class="detail-value">0</span>
+                        <div class="mochi-score">
+                            <div class="mochi-count-label">つきあげた餅</div>
+                            <div class="mochi-count"><span id="final-mochi">0</span><span class="mochi-unit">個</span></div>
+                        </div>
+                    </div>
+                    <div class="result-stats">
+                        <div class="stat-item">
+                            <span class="stat-icon">🎯</span>
+                            <span class="stat-label">ナイス</span>
+                            <span id="stat-nice" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">🔥</span>
+                            <span class="stat-label">最大コンボ</span>
+                            <span id="stat-max-combo" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">✨</span>
+                            <span class="stat-label">PERFECT率</span>
+                            <span id="stat-perfect-rate" class="stat-value">0%</span>
                         </div>
                     </div>
                     <div id="result-comment" class="result-comment"></div>
                     <div class="result-actions">
-                        <button id="restart-button">もう一度つく</button>
-                        <button id="share-button">結果を共有</button>
+                        <button id="restart-button" class="action-btn primary-btn">
+                            <span class="btn-icon">🔄</span>
+                            <span class="btn-text">もう一度</span>
+                        </button>
+                        <button id="back-to-start-button" class="action-btn secondary-btn">
+                            <span class="btn-icon">🏠</span>
+                            <span class="btn-text">HOME</span>
+                        </button>
+                        <button id="share-button" class="action-btn share-btn">
+                            <span class="btn-icon">📤</span>
+                            <span class="btn-text">共有</span>
+                        </button>
                     </div>
                 </div>
             </div>
