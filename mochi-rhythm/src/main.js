@@ -213,10 +213,12 @@ class Note {
         ctx.fill();
         ctx.stroke();
 
-        // Icon
-        const img = this.type === 'usu' ? images.kineNote : images.handNote;
-        const iconSize = noteSize * 0.75;
-        if (img.complete) ctx.drawImage(img, -iconSize / 2, -iconSize / 2, iconSize, iconSize);
+        // Emoji Icon
+        const emoji = this.type === 'usu' ? '🔨' : '✋';
+        ctx.font = `${noteSize * 0.5}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, 0, 0);
 
         ctx.restore();
     }
