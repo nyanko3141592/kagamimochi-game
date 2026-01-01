@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ツリー積 - Christmas Tree Stacker</title>
+    <meta name="description" content="クリスマスツリーを高く積み上げよう。最後に星を飾って完成！">
+    <link rel="stylesheet" href="./src/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap"
+        rel="stylesheet">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎄</text></svg>">
+
+    <!-- OGP -->
+    <meta property="og:title" content="ツリー積 - Christmas Tree Stacker">
+    <meta property="og:description" content="クリスマスツリーを高く積み上げよう。最後に星を飾って完成！">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://game.nya3neko2.dev/tree-stack/">
+    <meta property="og:site_name" content="NYA3NEKO2 GAMES">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@nya3_neko2">
+    <meta property="og:image" content="https://game.nya3neko2.dev/ogp-tree.png">
+</head>
+
+<body>
+    <div id="app">
+        <div id="flash-effect"></div>
+        <div id="game-container">
+            <div id="background-layer"></div>
+            <canvas id="game-canvas"></canvas>
+
+            <div id="ui-overlay">
+                <div id="score-container">
+                    <span id="score">0</span><span class="unit">層</span>
+                </div>
+                <div id="comparison-container">
+                    <span id="comparison-text">目指せ、巨大ツリー！</span>
+                </div>
+            </div>
+
+            <div id="start-screen" class="overlay">
+                <h1>ツリー積</h1>
+                <div class="subtitle">Christmas Tree Stacker</div>
+                <div id="home-best-score"
+                    style="margin-bottom: 20px; font-weight: bold; color: #E5A1A8; font-family: var(--font-en);">BEST: -
+                </div>
+                <p>タップでツリーを落として積もう！<br>最後に星を落として完成！</p>
+                <button id="start-button">はじめる</button>
+            </div>
+
+            <div id="game-over-screen" class="overlay hidden">
+                <h2 id="result-title">Merry Christmas!</h2>
+                <div id="rank-container">
+                    <div id="rank-emoji"></div>
+                    <div id="rank-name"></div>
+                    <div id="rank-desc"></div>
+                </div>
+                <!-- <div class="final-score-wrap">
+                    <span id="final-score">0</span><span class="unit">段</span>
+                </div> -->
+                <div class="stats-container">
+                    <div class="stat-item">
+                        <span class="stat-label">Score</span>
+                        <span id="final-score-small" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Perfect</span>
+                        <span id="perfect-count" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Max Combo</span>
+                        <span id="max-combo" class="stat-value">0</span>
+                    </div>
+                </div>
+                <!-- <div id="final-comparison"></div> -->
+                <div class="result-actions">
+                    <button id="share-button">結果を共有</button>
+                    <button id="restart-button">もう一度</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/poly-decomp@0.3.0/dist/decomp.min.js"></script>
+    <script type="module" src="./src/main.js"></script>
+</body>
+
+</html>
