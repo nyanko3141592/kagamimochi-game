@@ -1,58 +1,65 @@
-# NYA3NEKO2 GAMES
+# NYA3NEKO2 GAMES (正月バカゲーシリーズ)
 
-A collection of casual games by Nya3Neko2, featuring the "Kagamimochi Stacker".
+Nya3Neko2が贈る、カオスでめでたい正月バカゲー・コレクション。
 
-## Project Structure
+## 🎮 収録ゲーム
 
-This project is a Multi-Page Application configured with Vite.
+### 1. 🍊 鏡餅スタッカー (Mochi Stacker)
+鏡餅をどこまでも高く積み上げる、物理演算カオスゲーム。
+- **特徴**: matter-jsによるカオスな物理、積み上げるほど増す難易度、神社背景の祝祭感。
+- **URL**: `/mochi-stack/`
 
-- **Root (`/`)**: Game Portal (Neo-Brutalism Design)
-- **`/mochi-stack/`**: Kagamimochi Stacker Game
+### 2. 🥁 もちリズム (Mochi Rhythm)
+杵（F）と手（J）を使い分け、リズムに合わせて餅をつきまくる本格リズムゲーム。
+- **特徴**: 縦型ツインレーン方式、特許配慮、10個で一山の餅スタックビジュアル、Retina対応の高精細描画。
+- **URL**: `/mochi-rhythm/`
 
-## Development
+### 3. 🎍 門松・オブ・ツリー (Tree Stack)
+門松やクリスマスツリーを高く積み上げるスタッキングゲーム。
+- **特徴**: 豪華な装飾、星を戴く頂点を目指せ。
+- **URL**: `/tree-stack/`
 
-### Setup
+### 4. 👺 だるまランナー (Daruma Runner)
+だるまが転がりながら「一富士二鷹三茄子」を避ける、Googleタイポなインフィニティ・ランナー。
+- **特徴**: 爽快なジャンプアクション、めでたい障害物、スコアアタック。
+- **URL**: `/daruma-game/`
 
+---
+
+## 🚀 技術スタック
+
+- **Core**: Vanilla JS / HTML5 Canvas
+- **Build Tool**: Vite (Multi-Page App)
+- **Physics**: matter-js (Mochi Stacker等で使用)
+- **Deployment**: Cloudflare Pages
+- **Design System**: Festive Brutalism (祝祭系ブルータリズム)
+
+## 🛠 開発者向け情報
+
+### セットアップ
 ```bash
 npm install
 ```
 
-### Run Locally
-
+### ローカル実行
 ```bash
 npm run dev
 ```
-Access the portal at `http://localhost:5173/` and the game at `http://localhost:5173/mochi-stack/`.
 
-### Build
-
+### ビルド
 ```bash
 npm run build
 ```
-Output will be in the `dist` directory.
 
-## Deployment
-
-Hosted on Cloudflare Pages.
-
-- **Project Name**: `kagamimochi-game`
-- **Production URL**: https://kagamimochi-game.pages.dev/
-- **Custom Domain**: https://game.nya3neko2.dev/ (Requires configuration in Cloudflare Dashboard)
-
-### Deploy Command
-
+### デプロイ
 ```bash
 npx wrangler pages deploy dist --project-name kagamimochi-game
 ```
 
-## Games
+---
 
-### 🍊 Kagamimochi Stacker
-Stack the Mochi infinitely! A physics-based New Year celebration chaos game.
-- Powered by `matter-js`
-
-## Author
+## 👸 Author
 **Nya3Neko2**
 - [Portfolio](https://nya3neko2.dev)
-- [Twitter](https://twitter.com/nya3_neko2)
+- [X (Twitter)](https://twitter.com/nya3_neko2)
 - [GitHub](https://github.com/nyanko3141592)

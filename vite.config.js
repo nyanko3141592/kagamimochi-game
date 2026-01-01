@@ -11,7 +11,8 @@ export default defineConfig({
                 main: resolve(__dirname, 'index.html'),
                 mochi: resolve(__dirname, 'mochi-stack/index.html'),
                 daruma: resolve(__dirname, 'daruma-game/index.html'),
-                tree: resolve(__dirname, 'tree-stack/index.html')
+                tree: resolve(__dirname, 'tree-stack/index.html'),
+                rhythm: resolve(__dirname, 'mochi-rhythm/index.html')
             }
         }
     }

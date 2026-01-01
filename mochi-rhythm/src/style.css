@@ -1,0 +1,326 @@
+:root {
+    --font-main: 'Noto Sans JP', sans-serif;
+    --font-en: 'Outfit', sans-serif;
+    --color-primary: #ff4757;
+    --color-secondary: #ffa502;
+    --color-accent: #feca57;
+    --color-bg: #f8f9fa;
+    --color-text: #2d3436;
+    --border-width: 4px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: #333;
+    color: var(--color-text);
+    overflow: hidden;
+    user-select: none;
+}
+
+#app {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 1200px;
+    max-height: 675px;
+    aspect-ratio: 16/9;
+    background-color: #fff;
+    background-image: url('/mochi-rhythm/images/temple.png');
+    background-size: cover;
+    background-position: center;
+    border: var(--border-width) solid #000;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+#game-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 10;
+}
+
+#ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    padding: 20px;
+    z-index: 20;
+}
+
+#score-container {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    text-align: right;
+    background: #fff;
+    padding: 15px 30px;
+    border: 4px solid #000;
+    box-shadow: 8px 8px 0 #000;
+}
+
+#score-container .label {
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 2px;
+}
+
+#score {
+    font-size: 48px;
+    font-weight: 900;
+    font-family: var(--font-en);
+}
+
+#combo-container {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+#combo-count {
+    font-family: var(--font-en);
+    font-size: 100px;
+    font-weight: 900;
+    line-height: 1;
+    color: #000;
+    -webkit-text-stroke: 3px #fff;
+}
+
+#combo-container .label {
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 5px;
+    color: var(--color-primary);
+    text-shadow: 2px 2px 0 #fff;
+}
+
+#judgment-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, 80px);
+    font-size: 48px;
+    font-weight: 900;
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 30;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    transition: opacity 0.3s;
+    border: var(--border-width) solid #000;
+}
+
+.hidden {
+    opacity: 0;
+    pointer-events: none !important;
+}
+
+h1 {
+    font-size: 80px;
+    font-weight: 900;
+    margin-bottom: 5px;
+    color: #000;
+}
+
+.subtitle {
+    font-family: var(--font-en);
+    font-size: 20px;
+    letter-spacing: 4px;
+    color: #000;
+    margin-bottom: 40px;
+    font-weight: 700;
+    background: #fff;
+    padding: 5px 20px;
+    border: 4px solid #000;
+}
+
+.instructions {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #000;
+    background: #fff;
+    padding: 30px;
+    border: 4px solid #000;
+    box-shadow: 10px 10px 0 var(--color-primary);
+}
+
+.highlight {
+    color: #000;
+    background: var(--color-accent);
+    padding: 2px 10px;
+    border: 2px solid #000;
+}
+
+.warning {
+    color: #fff;
+    background: var(--color-primary);
+    padding: 2px 10px;
+    border: 2px solid #000;
+}
+
+.mode-select {
+    display: flex;
+    gap: 30px;
+}
+
+.mode-button {
+    background: #fff;
+    border: 4px solid #000;
+    color: #000;
+    padding: 25px 50px;
+    cursor: pointer;
+    transition: all 0.1s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 250px;
+    box-shadow: 8px 8px 0 #000;
+}
+
+.mode-button:hover {
+    transform: translate(-4px, -4px);
+    box-shadow: 12px 12px 0 #000;
+}
+
+.mode-button:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px 0 #000;
+}
+
+.mode-name {
+    font-size: 28px;
+    font-weight: 900;
+}
+
+.result-panel {
+    background: #fff;
+    border: 6px solid #000;
+    padding: 50px;
+    text-align: center;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: 20px 20px 0 #000;
+}
+
+#game-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 120px;
+    pointer-events: auto;
+    z-index: 50;
+}
+
+.ctrl-btn {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 6px solid #000;
+    font-size: 32px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 10px 0 #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+}
+
+#btn-kine {
+    background: var(--color-accent);
+}
+
+#btn-hand {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.ctrl-btn:active {
+    transform: translateY(10px);
+    box-shadow: 0 0 0 #000;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.stat-box {
+    background: #f8f9fa;
+    padding: 15px;
+    border: 4px solid #000;
+}
+
+.stat-label {
+    font-weight: 900;
+    opacity: 0.6;
+    font-size: 14px;
+}
+
+.stat-value {
+    font-weight: 900;
+    font-size: 32px;
+    font-family: var(--font-en);
+}
+
+button#restart-button,
+button#share-button {
+    padding: 20px 40px;
+    border: 4px solid #000;
+    cursor: pointer;
+    font-weight: 900;
+    font-size: 20px;
+    box-shadow: 6px 6px 0 #000;
+    transition: all 0.1s;
+}
+
+#restart-button {
+    background: var(--color-accent);
+}
+
+#share-button {
+    background: #fff;
+}
+
+button:active {
+    transform: translate(6px, 6px);
+    box-shadow: 0 0 0 #000;
+}
